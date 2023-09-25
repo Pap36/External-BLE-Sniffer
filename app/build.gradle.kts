@@ -18,6 +18,7 @@ android {
 dependencies {
     implementation(project(":ui:devices"))
     implementation(project(":ui:selected"))
+    implementation(project(":usb"))
 
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))

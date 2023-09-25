@@ -6,3 +6,7 @@ plugins {
 android {
     namespace = "com.externalblesniffer.usb"
 }
+
+dependencies {
+    implementation(project(":repo"))
+}
