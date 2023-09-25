@@ -4,5 +4,5 @@ plugins {
 }
 
 android {
-    namespace = "com.externalblesniffer.ui"
+    namespace = "com.externalblesniffer.ui.devices"
 }

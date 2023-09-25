@@ -20,9 +20,10 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My Application"
+rootProject.name = "External-BLE-Sniffer"
 include(":app")
-include(":ui")
 include(":usb")
 include(":blescanner")
 include(":repo")
+include(":ui:devices")
+include(":ui:selected")
