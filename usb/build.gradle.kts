@@ -5,6 +5,9 @@ plugins {
 
 android {
     namespace = "com.externalblesniffer.usb"
+    defaultConfig {
+        minSdk = 26
+    }
 }
 
 dependencies {

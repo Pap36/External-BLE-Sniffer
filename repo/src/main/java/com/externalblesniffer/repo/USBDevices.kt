@@ -10,10 +10,10 @@ import javax.inject.Singleton
 @Singleton
 class USBDevices @Inject constructor() {
 
-    private val _usbDevices: MutableStateFlow<HashMap<String, UsbDevice>?> = MutableStateFlow(null)
+    private val _usbDevices: MutableStateFlow<List<Pair<Boolean, UsbDevice>>?> = MutableStateFlow(null)
     val usbDevices = _usbDevices.asStateFlow()
 
-    fun refresh(devices: HashMap<String, UsbDevice>) {
+    fun refresh(devices: List<Pair<Boolean, UsbDevice>>) {
         Log.d("USBDevices", "refresh: $devices")
         _usbDevices.value = devices
     }

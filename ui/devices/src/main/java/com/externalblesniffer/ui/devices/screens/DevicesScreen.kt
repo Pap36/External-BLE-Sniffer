@@ -67,12 +67,14 @@ fun DevicesScreen(
                 .fillMaxWidth()
         ) {
             usbDevices?.let {
-                items(it) {usbDevice ->
+                items(it) {(permission, usbDevice) ->
                     USBDeviceRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        usbDevice
+                        usbDevice,
+                        permission,
+                        onUIEvent = onUIEvent,
                     )
                     Divider(modifier = Modifier.fillMaxWidth())
                 }
