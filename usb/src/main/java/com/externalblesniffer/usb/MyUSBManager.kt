@@ -92,10 +92,19 @@ class MyUSBManager @Inject constructor(
 
     private suspend fun read() {
         yield()
-        val dataToRead = ByteArray(64)
+        val dataToRead = ByteArray(73)
         currentPort?.read(dataToRead, 1000)
-        Log.d("MyUSBManager", "read${dataToRead.contentToString()}")
+        processData(dataToRead)
         currentConnection.setLatestReceivedData(dataToRead)
+    }
+
+    private fun processData(data: ByteArray) {
+        val rssi = data[0]
+        val advType = data[1]
+        val addrType = data[2]
+        val mac = data.sliceArray(3 until 9)
+        val manufacturerData = data.sliceArray(9 until data.size)
+        Log.d("MyUSBManager", "rssi: $rssi, advType: $advType, addrType: $addrType, mac: ${mac.contentToString()}, manufacturerData: ${manufacturerData.contentToString()}")
     }
 
     fun disconnect() {
