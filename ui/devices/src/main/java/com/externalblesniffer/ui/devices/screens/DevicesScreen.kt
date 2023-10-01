@@ -67,7 +67,7 @@ fun DevicesScreen(
                 .fillMaxWidth()
         ) {
             usbDevices?.let {
-                items(it) {(permission, usbDevice) ->
+                items(it) {(ports, usbDevice) ->
                     USBDeviceRow(
                         modifier = Modifier
                             .fillMaxWidth()

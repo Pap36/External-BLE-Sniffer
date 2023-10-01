@@ -14,8 +14,5 @@ class DevicesViewModel @Inject constructor(
     usbDevices: USBDevices,
 ): ViewModel() {
 
-    val usbDevicesFlow = usbDevices.usbDevices.flatMapLatest { devices ->
-        flow { emit(devices) }
-    }.flowOn(Dispatchers.IO)
-
+    val usbDevicesFlow = usbDevices.usbDevices
 }

@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
+import com.hoho.android.usbserial.driver.UsbSerialProber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,20 +31,12 @@ class MyUSBManager @Inject constructor(
     private val currentConnection: CurrentConnection,
 ) {
 
-    private var connectedDevice: UsbDevice? = null
-    private var readEP: UsbEndpoint? = null
-    private var writeEP: UsbEndpoint? = null
-
-    private val readingBuffer: ByteBuffer = ByteBuffer.allocate(64)
-
     fun refresh() {
+
+        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
         Log.d("MyUSBManager", "refresh")
-        val devices = usbManager.deviceList
-        usbDevices.refresh(
-            devices.map { entry ->
-                Pair(usbManager.hasPermission(entry.value), entry.value)
-            }
-        )
+        val devices = availableDrivers.map { Pair(it.ports, it.device) }
+        usbDevices.refresh(devices)
     }
 
     fun requestPermission(deviceID: Int, mPendingIntent: PendingIntent) {
