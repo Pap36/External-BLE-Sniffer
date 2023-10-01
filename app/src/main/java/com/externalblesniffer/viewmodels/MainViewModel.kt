@@ -46,9 +46,11 @@ class MainViewModel @Inject constructor(
 
     fun requestPermission(deviceID: Int) = usbManager.requestPermission(deviceID, mPendingIntent)
 
-    fun requestPermissionAndConnect(deviceID: Int) = usbManager.requestPermissionAndConnect(deviceID, mPendingIntent, viewModelScope)
-
-    fun connect(deviceID: Int) = usbManager.connect(deviceID, viewModelScope)
+    fun connect(deviceID: Int): Boolean {
+        val res = usbManager.connect(deviceID, viewModelScope)
+        if (!res) requestPermission(deviceID)
+        return res
+    }
 
     fun send(data: ByteArray) {
         viewModelScope.launch(Dispatchers.IO) {

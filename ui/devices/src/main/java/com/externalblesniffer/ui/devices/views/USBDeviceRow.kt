@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,26 +26,17 @@ import no.nordicsemi.android.common.theme.nordicGreen
 fun USBDeviceRow(
     modifier: Modifier = Modifier,
     usbDevice: UsbDevice,
-    permission: Boolean,
     onUIEvent: (UIEvents) -> Unit = {},
 ) {
     Row(
         modifier = modifier
-            .clickable {
-                if (!permission) onUIEvent(UIEvents.RequestPermissionAndConnect(usbDevice.deviceId))
-                else onUIEvent(UIEvents.Connect(usbDevice.deviceId))
-            },
+            .clickable { onUIEvent(UIEvents.Connect(usbDevice.deviceId)) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = { if(!permission) onUIEvent(UIEvents.RequestPermission(usbDevice.deviceId)) }
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Circle,
-                tint = if(permission) MaterialTheme.colorScheme.nordicGreen else MaterialTheme.colorScheme.error,
-                contentDescription = null
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Usb,
+            contentDescription = null
+        )
 
         Column(
             modifier = Modifier

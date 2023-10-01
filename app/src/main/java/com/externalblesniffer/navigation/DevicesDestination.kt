@@ -27,12 +27,6 @@ val DevicesDestination = defineDestination(Devices) {
                     Log.d("DevicesDestination", "RequestPermission")
                     mainViewModel.requestPermission(uiEvent.usbDeviceID)
                 }
-                is UIEvents.RequestPermissionAndConnect -> {
-                    Log.d("DevicesDestination", "RequestPermissionAndConnect")
-                    val success = mainViewModel.requestPermissionAndConnect(uiEvent.usbDeviceID)
-                    if (success) navigation.navigateTo(Selected)
-                    // TODO else display snackbar
-                }
                 is UIEvents.Connect -> {
                     Log.d("DevicesDestination", "Connect")
                     val success = mainViewModel.connect(uiEvent.usbDeviceID)

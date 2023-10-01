@@ -73,7 +73,6 @@ fun DevicesScreen(
                             .fillMaxWidth()
                             .padding(16.dp),
                         usbDevice,
-                        permission,
                         onUIEvent = onUIEvent,
                     )
                     Divider(modifier = Modifier.fillMaxWidth())

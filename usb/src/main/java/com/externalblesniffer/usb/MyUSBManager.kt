@@ -12,6 +12,9 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.externalblesniffer.repo.CurrentConnection
 import com.externalblesniffer.repo.USBDevices
+import com.hoho.android.usbserial.driver.UsbSerialPort
+import com.hoho.android.usbserial.driver.UsbSerialPort.PARITY_NONE
+import com.hoho.android.usbserial.driver.UsbSerialPort.STOPBITS_1
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +34,9 @@ class MyUSBManager @Inject constructor(
     private val currentConnection: CurrentConnection,
 ) {
 
-    fun refresh() {
+    private var currentPort: UsbSerialPort? = null
 
+    fun refresh() {
         val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
         Log.d("MyUSBManager", "refresh")
         val devices = availableDrivers.map { Pair(it.ports, it.device) }
@@ -47,74 +51,33 @@ class MyUSBManager @Inject constructor(
         }
     }
 
-    fun requestPermissionAndConnect(deviceID: Int, mPendingIntent: PendingIntent, scope: CoroutineScope): Boolean {
-        Log.d("MyUSBManager", "requestPermissionAndConnect: $deviceID")
-        val device = usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second
-        return if (device != null) {
-            usbManager.requestPermission(device, mPendingIntent)
-            connect(deviceID, scope)
-        } else false
-    }
-
     fun connect(deviceID: Int, scope: CoroutineScope): Boolean {
         Log.d("MyUSBManager", "connect: $deviceID")
-        val device = usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second
-        connectedDevice = device
-        if (device != null) {
-            val connection = usbManager.openDevice(device)
-            val config = device.getConfiguration(0)
-            return if (connection != null) {
-                connection.claimInterface(device.getInterface(1), true)
-                connection.setConfiguration(config)
-                currentConnection.setConnection(connection)
-                readEP = device.getInterface(1).getEndpoint(0)
-                Log.d("MyUSBManager", "readEP: $readEP")
-                Log.d("MyUSBManager", "readEP: ${readEP?.direction}")
-                Log.d("MyUSBManager", "readEP: ${readEP?.attributes}")
-                writeEP = device.getInterface(1).getEndpoint(1)
+        val connection = usbManager.openDevice(usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second)
+            ?: return false
 
-                /*scope.launch(Dispatchers.IO) {
-                    while (true) {
-                        try {
-                            // give time to System resources
-                            delay(100)
-                            read()
-                        } catch (e: Exception) {
-                            // Log.d("MyUSBManager", "read: ${e.message}")
-                            continue
-                        }
-                    }
-                }*/
+        currentConnection.setConnection(connection)
+        currentPort = usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.first?.firstOrNull()
+            ?: return false
 
-                true
-            } else false
-        }
-        return false
+        currentPort!!.open(connection)
+        currentPort!!.setParameters(115200, 8, STOPBITS_1, PARITY_NONE)
+        currentPort!!.dtr = true
+        return true
     }
 
-    suspend fun write(data: ByteArray) {
+    fun write(data: ByteArray) {
+        Log.d("MyUSBManager", "write: $currentPort")
+        currentPort?.write(data, 1000)
         Log.d("MyUSBManager", "write: ${data.contentToString()}")
-        val length = currentConnection.currentConnection.value?.bulkTransfer(
-            writeEP,
-            data,
-            data.size,
-            1000
-        )
-        Log.d("MyUSBManager", "wrote a length of: $length")
-        delay(100)
         read()
     }
 
     private fun read() {
-        val data = ByteArray(64)
-        val length = currentConnection.currentConnection.value?.bulkTransfer(
-            readEP,
-            data,
-            64,
-            1000
-        )
-        Log.d("MyUSBManager", "read a length of: $length")
-        currentConnection.setLatestReceivedData(data)
+        val dataToRead = ByteArray(64)
+        val bytesRead = currentPort?.read(dataToRead, 1000)
+        Log.d("MyUSBManager", "read: $bytesRead bytes read")
+        currentConnection.setLatestReceivedData(dataToRead)
     }
 
 }
