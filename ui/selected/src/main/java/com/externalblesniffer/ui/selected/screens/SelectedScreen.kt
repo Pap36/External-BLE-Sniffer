@@ -2,6 +2,8 @@ package com.externalblesniffer.ui.selected.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -24,11 +26,7 @@ fun SelectedScreen(
     onUIEvent: (UIEvents) -> Unit = {  }
 ) {
 
-    val viewModel = hiltViewModel<SelectedViewModel>()
-    val latestReceivedData by viewModel.latestReceivedData.collectAsStateWithLifecycle()
-    var toSend by remember {
-        mutableStateOf(TextFieldValue())
-    }
+    // val viewModel = hiltViewModel<SelectedViewModel>()
 
 
     Column(
@@ -36,15 +34,18 @@ fun SelectedScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        Text("Received data: ${String(latestReceivedData ?: byteArrayOf(), Charsets.UTF_8)}")
-        TextField(
-            value = toSend,
-            onValueChange = {
-                toSend = it
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = { onUIEvent(UIEvents.StartScan) }) {
+                Text(text = "Start scanning")
             }
-        )
-        Button(onClick = { onUIEvent(UIEvents.Send(toSend.text.encodeToByteArray())) }) {
-            Text("Send")
+
+            Button(onClick = { onUIEvent(UIEvents.StopScan) }) {
+                Text(text = "Stop scanning")
+            }
         }
     }
 

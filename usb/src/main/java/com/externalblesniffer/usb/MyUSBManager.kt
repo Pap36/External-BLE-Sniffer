@@ -22,6 +22,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import com.hoho.android.usbserial.driver.UsbSerialProber
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.yield
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,16 +37,17 @@ class MyUSBManager @Inject constructor(
 ) {
 
     private var currentPort: UsbSerialPort? = null
+    private var readingJob: Job? = null
 
     fun refresh() {
         val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
-        Log.d("MyUSBManager", "refresh")
+        // Log.d("MyUSBManager", "refresh")
         val devices = availableDrivers.map { Pair(it.ports, it.device) }
         usbDevices.refresh(devices)
     }
 
     fun requestPermission(deviceID: Int, mPendingIntent: PendingIntent) {
-        Log.d("MyUSBManager", "requestPermission: $deviceID")
+        // Log.d("MyUSBManager", "requestPermission: $deviceID")
         val device = usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second
         if (device != null) {
             usbManager.requestPermission(device, mPendingIntent)
@@ -52,7 +55,7 @@ class MyUSBManager @Inject constructor(
     }
 
     fun connect(deviceID: Int, scope: CoroutineScope): Boolean {
-        Log.d("MyUSBManager", "connect: $deviceID")
+        // Log.d("MyUSBManager", "connect: $deviceID")
         val connection = usbManager.openDevice(usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second)
             ?: return false
 
@@ -63,21 +66,46 @@ class MyUSBManager @Inject constructor(
         currentPort!!.open(connection)
         currentPort!!.setParameters(115200, 8, STOPBITS_1, PARITY_NONE)
         currentPort!!.dtr = true
+
+        readingJob = scope.launch(Dispatchers.IO) {
+            while (true) {
+                yield()
+                read()
+            }
+        }
+
         return true
     }
 
-    fun write(data: ByteArray) {
-        Log.d("MyUSBManager", "write: $currentPort")
-        currentPort?.write(data, 1000)
-        Log.d("MyUSBManager", "write: ${data.contentToString()}")
-        read()
+    fun startScan() {
+        write(byteArrayOf(0x01))
     }
 
-    private fun read() {
+    fun stopScan() {
+        write(byteArrayOf(0x00))
+    }
+
+    private fun write(data: ByteArray) {
+        Log.d("MyUSBManager", "write${data.contentToString()}")
+        currentPort?.write(data, 1000)
+    }
+
+    private suspend fun read() {
+        yield()
         val dataToRead = ByteArray(64)
-        val bytesRead = currentPort?.read(dataToRead, 1000)
-        Log.d("MyUSBManager", "read: $bytesRead bytes read")
+        currentPort?.read(dataToRead, 1000)
+        Log.d("MyUSBManager", "read${dataToRead.contentToString()}")
         currentConnection.setLatestReceivedData(dataToRead)
+    }
+
+    fun disconnect() {
+        try {
+            readingJob?.cancel()
+            currentPort?.close()
+        } catch(e: Exception) {
+            Log.d("MyUsbManager", e.printStackTrace().toString())
+        }
+        currentPort = null
     }
 
 }

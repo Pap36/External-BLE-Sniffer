@@ -52,10 +52,10 @@ class MainViewModel @Inject constructor(
         return res
     }
 
-    fun send(data: ByteArray) {
-        viewModelScope.launch(Dispatchers.IO) {
-            usbManager.write(data)
-        }
-    }
+    fun startScan() = usbManager.startScan()
+
+    fun stopScan() = usbManager.stopScan()
+
+    fun disconnect() = usbManager.disconnect()
 
 }

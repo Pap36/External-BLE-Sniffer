@@ -1,5 +1,6 @@
 package com.externalblesniffer.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -12,12 +13,19 @@ val SelectedDestination = defineDestination(Selected) {
 
     val mainViewModel = hiltViewModel<MainViewModel>()
 
+    BackHandler {
+        mainViewModel.disconnect()
+    }
+
     SelectedScreen(
         modifier = Modifier.fillMaxSize(),
         onUIEvent = { uiEvent ->
             when (uiEvent) {
-                is UIEvents.Send -> {
-                    mainViewModel.send(uiEvent.data)
+                is UIEvents.StartScan -> {
+                    mainViewModel.startScan()
+                }
+                is UIEvents.StopScan -> {
+                    mainViewModel.stopScan()
                 }
             }
         }
