@@ -9,5 +9,5 @@ android {
 
 dependencies {
 
-    implementation("com.github.mik3y:usb-serial-for-android:3.6.0")
+    implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
 }
