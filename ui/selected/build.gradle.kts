@@ -9,6 +9,8 @@ android {
 
 dependencies {
 
+    implementation(project(":repo"))
+
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
 
