@@ -1,29 +1,22 @@
 package com.externalblesniffer.usb
 
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.IntentFilter
-import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbManager
-import android.hardware.usb.UsbRequest
 import android.util.Log
-import androidx.core.content.ContextCompat
-import com.externalblesniffer.repo.CurrentConnection
+import com.externalblesniffer.repo.ScanResults
 import com.externalblesniffer.repo.USBDevices
+import com.externalblesniffer.repo.datamodel.BLEScanResult
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialPort.PARITY_NONE
 import com.hoho.android.usbserial.driver.UsbSerialPort.STOPBITS_1
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.nio.ByteBuffer
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.yield
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,11 +26,13 @@ const val USB_SERVICE = "usb_request_permission"
 class MyUSBManager @Inject constructor(
     private val usbManager: UsbManager,
     private val usbDevices: USBDevices,
-    private val currentConnection: CurrentConnection,
+    private val scanResults: ScanResults,
 ) {
 
     private var currentPort: UsbSerialPort? = null
     private var readingJob: Job? = null
+
+    private var incompleteData: ByteArray = byteArrayOf()
 
     fun refresh() {
         val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
@@ -59,7 +54,6 @@ class MyUSBManager @Inject constructor(
         val connection = usbManager.openDevice(usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.second)
             ?: return false
 
-        currentConnection.setConnection(connection)
         currentPort = usbDevices.usbDevices.value?.find { it.second.deviceId == deviceID }?.first?.firstOrNull()
             ?: return false
 
@@ -78,6 +72,7 @@ class MyUSBManager @Inject constructor(
     }
 
     fun startScan() {
+        scanResults.clearUSBResults()
         write(byteArrayOf(0x01))
     }
 
@@ -93,18 +88,75 @@ class MyUSBManager @Inject constructor(
     private suspend fun read() {
         yield()
         val dataToRead = ByteArray(73)
-        currentPort?.read(dataToRead, 1000)
-        processData(dataToRead)
-        currentConnection.setLatestReceivedData(dataToRead)
+        val readBytes = currentPort?.read(dataToRead, 1000)
+        Log.d("MyUSBManager", "before processing: ${incompleteData.contentToString()}")
+        Log.d("MyUSBManager", "read: ${dataToRead.contentToString()}")
+        incompleteData = processData(
+            try {
+                incompleteData + dataToRead.sliceArray(0 until (readBytes ?: 0))
+            } catch (e: Exception) {
+                ByteArray(0)
+            }
+        )
+        Log.d("MyUSBManager", "after processing: ${incompleteData.contentToString()}")
     }
 
-    private fun processData(data: ByteArray) {
-        val rssi = data[0]
-        val advType = data[1]
-        val addrType = data[2]
-        val mac = data.sliceArray(3 until 9)
-        val manufacturerData = data.sliceArray(9 until data.size)
-        Log.d("MyUSBManager", "rssi: $rssi, advType: $advType, addrType: $addrType, mac: ${mac.contentToString()}, manufacturerData: ${manufacturerData.contentToString()}")
+    private fun processData(data: ByteArray): ByteArray {
+        var toProcess = data
+        while (toProcess.isNotEmpty()) {
+            try {
+                val rssi = toProcess[0]
+                val advType = toProcess[1]
+                val addrType = toProcess[2]
+                val mac = toProcess.sliceArray(3 until 9)
+                var manufacturerData = toProcess.sliceArray(9 until toProcess.size)
+                if (manufacturerData.isEmpty()) return toProcess
+                while (manufacturerData.isNotEmpty()) {
+                    val len = manufacturerData[0].toInt()
+                    if (len <= 0) {
+                        val manData = toProcess.sliceArray(
+                            9 until toProcess.size - manufacturerData.size
+                        )
+                        val readData = toProcess.sliceArray(
+                            0 until toProcess.size - manufacturerData.size
+                        )
+                        Log.d("MyUSBManager", "read1: ${readData.contentToString()}")
+                        scanResults.registerUSBScanResult(
+                            BLEScanResult(
+                                rssi = rssi.toInt(),
+                                adv_type = advType.toInt(),
+                                addr_type = addrType.toInt(),
+                                addr = mac,
+                                data = manData,
+                            )
+                        )
+                        toProcess = toProcess.sliceArray(
+                            toProcess.size - manufacturerData.size until toProcess.size
+                        )
+                        break
+                    }
+                    if (manufacturerData.size < len + 1) return toProcess
+                    manufacturerData = manufacturerData.sliceArray(len + 1 until manufacturerData.size)
+                }
+                if (manufacturerData.isEmpty()) {
+                    val manData = toProcess.sliceArray(9 until toProcess.size)
+                    Log.d("MyUSBManager", "read2: ${toProcess.contentToString()}")
+                    scanResults.registerUSBScanResult(
+                        BLEScanResult(
+                            rssi = rssi.toInt(),
+                            adv_type = advType.toInt(),
+                            addr_type = addrType.toInt(),
+                            addr = mac,
+                            data = manData,
+                        )
+                    )
+                    toProcess = byteArrayOf()
+                }
+            } catch (e: Exception) {
+                return toProcess
+            }
+        }
+        return byteArrayOf()
     }
 
     fun disconnect() {

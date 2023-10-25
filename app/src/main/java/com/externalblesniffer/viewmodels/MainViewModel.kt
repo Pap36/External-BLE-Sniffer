@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat.RECEIVER_EXPORTED
 import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.externalblesniffer.blescanner.BLEManager
 import com.externalblesniffer.usb.MyBroadcastReceiver
 import com.externalblesniffer.usb.MyUSBManager
 import com.externalblesniffer.usb.USB_SERVICE
@@ -22,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val usbManager: MyUSBManager,
+    private val bleManager: BLEManager,
     @ApplicationContext context: Context,
     broadcastReceiver: MyBroadcastReceiver,
 ): ViewModel() {
@@ -52,9 +54,15 @@ class MainViewModel @Inject constructor(
         return res
     }
 
-    fun startScan() = usbManager.startScan()
+    fun startScan() {
+        bleManager.startScan()
+        usbManager.startScan()
+    }
 
-    fun stopScan() = usbManager.stopScan()
+    fun stopScan() {
+        bleManager.stopScan()
+        usbManager.stopScan()
+    }
 
     fun disconnect() = usbManager.disconnect()
 

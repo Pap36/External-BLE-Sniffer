@@ -6,3 +6,7 @@ plugins {
 android {
     namespace = "com.externalblesniffer.blescanner"
 }
+
+dependencies {
+    implementation(project(":repo"))
+}

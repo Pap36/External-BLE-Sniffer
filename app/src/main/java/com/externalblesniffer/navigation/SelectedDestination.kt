@@ -8,26 +8,28 @@ import com.externalblesniffer.ui.selected.datamodel.UIEvents
 import com.externalblesniffer.ui.selected.screens.SelectedScreen
 import com.externalblesniffer.viewmodels.MainViewModel
 import no.nordicsemi.android.common.navigation.defineDestination
+import no.nordicsemi.android.common.permissions.ble.RequireBluetooth
 
 val SelectedDestination = defineDestination(Selected) {
 
     val mainViewModel = hiltViewModel<MainViewModel>()
+    RequireBluetooth {
+        BackHandler {
+            mainViewModel.disconnect()
+        }
 
-    BackHandler {
-        mainViewModel.disconnect()
-    }
-
-    SelectedScreen(
-        modifier = Modifier.fillMaxSize(),
-        onUIEvent = { uiEvent ->
-            when (uiEvent) {
-                is UIEvents.StartScan -> {
-                    mainViewModel.startScan()
-                }
-                is UIEvents.StopScan -> {
-                    mainViewModel.stopScan()
+        SelectedScreen(
+            modifier = Modifier.fillMaxSize(),
+            onUIEvent = { uiEvent ->
+                when (uiEvent) {
+                    is UIEvents.StartScan -> {
+                        mainViewModel.startScan()
+                    }
+                    is UIEvents.StopScan -> {
+                        mainViewModel.stopScan()
+                    }
                 }
             }
-        }
-    )
+        )
+    }
 }

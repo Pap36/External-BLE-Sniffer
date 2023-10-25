@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":ui:devices"))
     implementation(project(":ui:selected"))
     implementation(project(":usb"))
+    implementation(project(":blescanner"))
 
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
@@ -31,6 +32,8 @@ dependencies {
     implementation(libs.nordic.theme)
     // add nordic navigation
     implementation(libs.nordic.navigation)
+    // add nordic ble permission
+    implementation(libs.nordic.permissions.ble)
 
     // Extended icons
     implementation(libs.androidx.compose.material.iconsExtended)
