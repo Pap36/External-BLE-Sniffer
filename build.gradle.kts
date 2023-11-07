@@ -14,7 +14,7 @@ plugins {
     alias(libs.plugins.nordic.kotlin) apply false
     alias(libs.plugins.nordic.hilt) apply false
     alias(libs.plugins.kotlin.serialization) apply false
-    id("com.android.library") version "8.1.2" apply false
+    id("com.android.library") version "8.1.3" apply false
     id("org.jetbrains.kotlin.android") version "1.9.10" apply false
 }
 
