@@ -89,8 +89,6 @@ class MyUSBManager @Inject constructor(
         yield()
         val dataToRead = ByteArray(73)
         val readBytes = currentPort?.read(dataToRead, 1000)
-        Log.d("MyUSBManager", "before processing: ${incompleteData.contentToString()}")
-        Log.d("MyUSBManager", "read: ${dataToRead.contentToString()}")
         incompleteData = processData(
             try {
                 incompleteData + dataToRead.sliceArray(0 until (readBytes ?: 0))
@@ -98,7 +96,6 @@ class MyUSBManager @Inject constructor(
                 ByteArray(0)
             }
         )
-        Log.d("MyUSBManager", "after processing: ${incompleteData.contentToString()}")
     }
 
     private fun processData(data: ByteArray): ByteArray {
@@ -120,7 +117,7 @@ class MyUSBManager @Inject constructor(
                         val readData = toProcess.sliceArray(
                             0 until toProcess.size - manufacturerData.size
                         )
-                        Log.d("MyUSBManager", "read1: ${readData.contentToString()}")
+                        // Log.d("MyUSBManager", "read1: ${readData.contentToString()}")
                         scanResults.registerUSBScanResult(
                             BLEScanResult(
                                 rssi = rssi.toInt(),
@@ -140,7 +137,7 @@ class MyUSBManager @Inject constructor(
                 }
                 if (manufacturerData.isEmpty()) {
                     val manData = toProcess.sliceArray(9 until toProcess.size)
-                    Log.d("MyUSBManager", "read2: ${toProcess.contentToString()}")
+                    // Log.d("MyUSBManager", "read2: ${toProcess.contentToString()}")
                     scanResults.registerUSBScanResult(
                         BLEScanResult(
                             rssi = rssi.toInt(),
