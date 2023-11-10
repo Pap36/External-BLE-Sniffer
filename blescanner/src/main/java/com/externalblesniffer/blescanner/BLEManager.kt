@@ -34,7 +34,7 @@ class BLEManager @Inject constructor(
                 val addrType = result.device.type
                 val addr = result.device.address.toByteArray()
                 val data = truncateData(result.scanRecord?.bytes ?: ByteArray(0))
-
+                // Log.d("BLEManager", "onScanResult: ${result.scanRecord.toString()} ${result.scanRecord?.bytes?.contentToString()}")
                 scanResults.registerBLESanResult(BLEScanResult(rssi, advType, addrType, addr, data))
                 // Log.d("BLEManager", "onScanResult: ${data.contentToString()}")
             }
