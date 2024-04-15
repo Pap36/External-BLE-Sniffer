@@ -78,13 +78,16 @@ fun SelectedScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Button(onClick = { onUIEvent(UIEvents.StartScan) }) {
+            Button(onClick = {
+                onUIEvent(UIEvents.StartScan)
+                viewModel.startScan()
+            }) {
                 Text(text = "Start scanning")
             }
 
             Button(onClick = {
                 onUIEvent(UIEvents.StopScan)
-                viewModel.processResults()
+                viewModel.stopScan()
             }) {
                 Text(text = "Stop scanning")
             }

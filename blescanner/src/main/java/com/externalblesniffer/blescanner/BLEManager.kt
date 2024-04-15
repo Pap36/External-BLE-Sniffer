@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.os.Build
+import android.util.Log
 import com.externalblesniffer.repo.ScanResults
 import com.externalblesniffer.repo.datamodel.BLEScanResult
 import javax.inject.Inject
@@ -32,11 +33,22 @@ class BLEManager @Inject constructor(
                 val advType = result.scanRecord?.bytes?.get(0)?.toInt() ?: 0
                 val addrType = result.device.type
                 val addr = result.device.address.toByteArray()
-                val data = result.scanRecord?.bytes ?: ByteArray(0)
-
+                val data = truncateData(result.scanRecord?.bytes ?: ByteArray(0))
+                // Log.d("BLEManager", "onScanResult: ${result.scanRecord.toString()} ${result.scanRecord?.bytes?.contentToString()}")
                 scanResults.registerBLESanResult(BLEScanResult(rssi, advType, addrType, addr, data))
+                // Log.d("BLEManager", "onScanResult: ${data.contentToString()}")
             }
         }
+    }
+
+    private fun truncateData(data: ByteArray): ByteArray {
+        var len = data[0].toInt()
+        var offset = 0
+        while (len != 0) {
+            offset += len + 1
+            len = data[offset].toInt()
+        }
+        return data.sliceArray(0 until offset)
     }
 
     @SuppressLint("MissingPermission")
