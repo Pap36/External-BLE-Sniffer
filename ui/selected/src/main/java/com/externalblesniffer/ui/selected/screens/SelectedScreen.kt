@@ -1,5 +1,7 @@
 package com.externalblesniffer.ui.selected.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +15,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.externalblesniffer.ui.selected.datamodel.UIEvents
 import com.externalblesniffer.ui.selected.viewmodels.SelectedViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import no.nordicsemi.android.common.theme.view.ProgressItem
 
 @Composable
@@ -33,6 +40,15 @@ fun SelectedScreen(
     val maximumCount by viewModel.maximumCount.collectAsStateWithLifecycle()
     val usbResultsCount by viewModel.usbResultsCount.collectAsStateWithLifecycle()
     val bleResultsCount by viewModel.bleResultsCount.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+
+    val fileExporter = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(mimeType = "application/json")
+    ) { uri ->
+        if(uri != null) coroutineScope.launch(Dispatchers.IO) {
+            onUIEvent(UIEvents.ExportResults(uri))
+        }
+    }
 
 
     Column(
@@ -51,7 +67,9 @@ fun SelectedScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = "USB Result Count:")
-            LinearProgressIndicator(progress = usbResultsCount.toFloat() / maximumCount.toFloat())
+            LinearProgressIndicator(
+                progress = { usbResultsCount.toFloat() / maximumCount.toFloat() },
+            )
         }
 
         Text(
@@ -70,7 +88,9 @@ fun SelectedScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = "BLE Result Count:")
-            LinearProgressIndicator(progress = bleResultsCount.toFloat() / maximumCount.toFloat())
+            LinearProgressIndicator(
+                progress = { bleResultsCount.toFloat() / maximumCount.toFloat() },
+            )
         }
         
         Row(
@@ -91,6 +111,12 @@ fun SelectedScreen(
             }) {
                 Text(text = "Stop scanning")
             }
+        }
+
+        Button(onClick = {
+            fileExporter.launch("sniffedResults")
+        }) {
+            Text(text = "Export Results to JSON")
         }
     }
 

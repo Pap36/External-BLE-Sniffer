@@ -5,12 +5,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.RECEIVER_EXPORTED
 import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.externalblesniffer.blescanner.BLEManager
+import com.externalblesniffer.export.ExportManager
 import com.externalblesniffer.usb.MyBroadcastReceiver
 import com.externalblesniffer.usb.MyUSBManager
 import com.externalblesniffer.usb.USB_SERVICE
@@ -24,6 +26,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val usbManager: MyUSBManager,
     private val bleManager: BLEManager,
+    private val exportManager: ExportManager,
     @ApplicationContext context: Context,
     broadcastReceiver: MyBroadcastReceiver,
 ): ViewModel() {
@@ -47,6 +50,7 @@ class MainViewModel @Inject constructor(
     fun refresh() = usbManager.refresh()
 
     fun requestPermission(deviceID: Int) = usbManager.requestPermission(deviceID, mPendingIntent)
+    fun exportResults(uri: Uri) = exportManager.exportResults(uri)
 
     fun connect(deviceID: Int): Boolean {
         val res = usbManager.connect(deviceID, viewModelScope)

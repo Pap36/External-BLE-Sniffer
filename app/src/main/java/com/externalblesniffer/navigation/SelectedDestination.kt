@@ -28,6 +28,9 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.StopScan -> {
                         mainViewModel.stopScan()
                     }
+                    is UIEvents.ExportResults -> {
+                        mainViewModel.exportResults(uiEvent.uri)
+                    }
                 }
             }
         )

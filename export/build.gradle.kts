@@ -5,12 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.externalblesniffer.repo"
+    namespace = "com.externalblesniffer.export"
 }
 
 dependencies {
-
-    implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
+    implementation(project(":repo"))
     // JSON
     implementation(libs.kotlinx.serialization.json)
 }

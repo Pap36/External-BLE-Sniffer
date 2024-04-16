@@ -1,5 +1,8 @@
 package com.externalblesniffer.repo.datamodel
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class BLEScanResult(
     val rssi: Int,
     val adv_type: Int,

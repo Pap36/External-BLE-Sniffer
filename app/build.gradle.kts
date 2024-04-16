@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":ui:selected"))
     implementation(project(":usb"))
     implementation(project(":blescanner"))
+    implementation(project(":export"))
 
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
