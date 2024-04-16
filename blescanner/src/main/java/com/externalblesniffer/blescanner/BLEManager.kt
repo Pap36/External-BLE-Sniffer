@@ -24,19 +24,33 @@ class BLEManager @Inject constructor(
         .setReportDelay(0)
         .build()
 
+    private fun hexStringToByteArray(hexString: String): ByteArray {
+        val result = ByteArray(hexString.length / 2)
+
+        for (i in hexString.indices step 2) {
+            val firstDigit = Character.digit(hexString[i], 16)
+            val secondDigit = Character.digit(hexString[i + 1], 16)
+            val byteValue = firstDigit shl 4 or secondDigit
+            result[i / 2] = byteValue.toByte()
+        }
+
+        return result
+    }
+
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             if (result != null) {
-
+                Log.d("BLE Manager", "scanRecord: ${result.scanRecord?.bytes.contentToString()}")
                 val rssi = result.rssi
-                val advType = result.scanRecord?.bytes?.get(0)?.toInt() ?: 0
+                val advType = -1
                 val addrType = result.device.type
-                val addr = result.device.address.toByteArray()
+                Log.d("BLEManager", "onScanResultAddr ${result.device.address}")
+                val addr = hexStringToByteArray(result.device.address.replace(":", ""))
+                Log.d("BLEManager", "onScanResultAddr after: ${addr.contentToString()}")
+                // addr is string of the form AA:BB:CC:DD:EE:FF
                 val data = truncateData(result.scanRecord?.bytes ?: ByteArray(0))
-                // Log.d("BLEManager", "onScanResult: ${result.scanRecord.toString()} ${result.scanRecord?.bytes?.contentToString()}")
-                scanResults.registerBLESanResult(BLEScanResult(rssi, advType, addrType, addr, data))
-                // Log.d("BLEManager", "onScanResult: ${data.contentToString()}")
+                scanResults.registerBLESanResult(BLEScanResult(rssi, advType, addrType, addr, data, "BLE"))
             }
         }
     }

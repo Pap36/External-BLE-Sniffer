@@ -95,6 +95,10 @@ class SelectedViewModel @Inject constructor(
         val bleResults = scanResults.bleResults
         var dif = 0
         val processed = arrayListOf<BLEScanResult>()
+        Log.d("SelectedViewModel", "bleResultsRaw: $bleResults")
+        Log.d("SelectedViewModel", "usbResultsRaw: $usbResults")
+        Log.d("SelectedViewModel", "bleResults: ${bleResults.map { res -> res.data.contentToString() }}")
+        Log.d("SelectedViewModel", "usbResults: ${usbResults.map { res -> res.data.contentToString() }}")
         for(bleResult in bleResults) {
             if (processed.any { it.data.contentEquals(bleResult.data) }) continue
             processed.add(bleResult)

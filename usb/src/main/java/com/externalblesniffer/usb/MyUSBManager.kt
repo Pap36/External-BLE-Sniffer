@@ -126,6 +126,7 @@ class MyUSBManager @Inject constructor(
                                 addr_type = addrType.toInt(),
                                 addr = mac,
                                 data = manData,
+                                source = "USB"
                             )
                         )
                         toProcess = toProcess.sliceArray(
@@ -146,6 +147,7 @@ class MyUSBManager @Inject constructor(
                             addr_type = addrType.toInt(),
                             addr = mac,
                             data = manData,
+                            source = "USB"
                         )
                     )
                     toProcess = byteArrayOf()

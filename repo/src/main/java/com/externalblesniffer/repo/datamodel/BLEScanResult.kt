@@ -9,6 +9,7 @@ data class BLEScanResult(
     val addr_type: Int,
     val addr: ByteArray,
     val data: ByteArray,
+    val source: String,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
