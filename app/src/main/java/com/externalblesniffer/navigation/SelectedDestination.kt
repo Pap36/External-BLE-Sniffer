@@ -31,6 +31,9 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.ExportResults -> {
                         mainViewModel.exportResults(uiEvent.uri)
                     }
+                    is UIEvents.onRSSIChange -> {
+                        mainViewModel.changeRSSI(uiEvent.rssi)
+                    }
                 }
             }
         )

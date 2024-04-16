@@ -16,7 +16,6 @@ import javax.inject.Singleton
 
 @Singleton
 class ScanResults @Inject constructor() {
-
     private val _usbResultsCount = MutableStateFlow(0)
     val usbResultsCount = _usbResultsCount.asStateFlow()
 

@@ -10,11 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +29,15 @@ import javax.inject.Inject
 class SelectedViewModel @Inject constructor(
     private val scanResults: ScanResults,
 ): ViewModel() {
+
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning = _isScanning.asStateFlow()
+
+    private val _rssiFilterValue = MutableStateFlow(-70)
+    val rssiFilterValue = _rssiFilterValue.asStateFlow()
+
+    val rssiFinal = _rssiFilterValue
+        .debounce(300)
 
     val usbResultsCount = scanResults.usbResultsCount
     val bleResultsCount = scanResults.bleResultsCount
@@ -76,7 +88,11 @@ class SelectedViewModel @Inject constructor(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 1)
 
+    fun changeRSSI(value: Int) {
+        _rssiFilterValue.value = value
+    }
     fun startScan() {
+        _isScanning.value = true
         _usbJobDone.value = false
         _bleJobDone.value = false
         jobsDoneCollectJob.start()
@@ -87,6 +103,7 @@ class SelectedViewModel @Inject constructor(
     fun stopScan() {
         usbCollectJob.cancel()
         bleCollectJob.cancel()
+        _isScanning.value = false
     }
 
     private suspend fun processResults() {

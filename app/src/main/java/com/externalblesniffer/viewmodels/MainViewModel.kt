@@ -67,6 +67,10 @@ class MainViewModel @Inject constructor(
         bleManager.stopScan()
         usbManager.stopScan()
     }
+    fun changeRSSI(rssiValue: Int) {
+        bleManager.changeRssi(rssiValue)
+        usbManager.changeRssi(rssiValue)
+    }
 
     fun disconnect() = usbManager.disconnect()
 

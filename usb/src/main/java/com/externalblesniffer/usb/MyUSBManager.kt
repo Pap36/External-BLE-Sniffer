@@ -34,6 +34,8 @@ class MyUSBManager @Inject constructor(
 
     private var incompleteData: ByteArray = byteArrayOf()
 
+    private var rssiThreshold:Int = 127
+
     fun refresh() {
         val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
         // Log.d("MyUSBManager", "refresh")
@@ -119,15 +121,16 @@ class MyUSBManager @Inject constructor(
                             0 until toProcess.size - manufacturerData.size
                         )
                         // Log.d("MyUSBManager", "read1: ${readData.contentToString()}")
-                        scanResults.registerUSBScanResult(
-                            BLEScanResult(
-                                rssi = rssi.toInt(),
-                                adv_type = advType.toInt(),
-                                addr_type = addrType.toInt(),
-                                addr = mac,
-                                data = manData,
-                                source = "USB"
-                            )
+                        if (!(rssi.toInt() < rssiThreshold || (rssi.toInt() == 127 && rssiThreshold == -100)))
+                            scanResults.registerUSBScanResult(
+                                BLEScanResult(
+                                    rssi = rssi.toInt(),
+                                    adv_type = advType.toInt(),
+                                    addr_type = addrType.toInt(),
+                                    addr = mac,
+                                    data = manData,
+                                    source = "USB"
+                                )
                         )
                         toProcess = toProcess.sliceArray(
                             toProcess.size - manufacturerData.size until toProcess.size
@@ -140,15 +143,16 @@ class MyUSBManager @Inject constructor(
                 if (manufacturerData.isEmpty()) {
                     val manData = toProcess.sliceArray(9 until toProcess.size)
                     Log.d("MyUSBManager", "read2: ${toProcess.contentToString()}")
-                    scanResults.registerUSBScanResult(
-                        BLEScanResult(
-                            rssi = rssi.toInt(),
-                            adv_type = advType.toInt(),
-                            addr_type = addrType.toInt(),
-                            addr = mac,
-                            data = manData,
-                            source = "USB"
-                        )
+                    if (!(rssi.toInt() < rssiThreshold || (rssi.toInt() == 127 && rssiThreshold == -100)))
+                        scanResults.registerUSBScanResult(
+                            BLEScanResult(
+                                rssi = rssi.toInt(),
+                                adv_type = advType.toInt(),
+                                addr_type = addrType.toInt(),
+                                addr = mac,
+                                data = manData,
+                                source = "USB"
+                            )
                     )
                     toProcess = byteArrayOf()
                 }
@@ -167,6 +171,10 @@ class MyUSBManager @Inject constructor(
             Log.d("MyUsbManager", e.printStackTrace().toString())
         }
         currentPort = null
+    }
+
+    fun changeRssi(rssi: Int) {
+        rssiThreshold = rssi
     }
 
 }

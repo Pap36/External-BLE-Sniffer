@@ -3,6 +3,7 @@ package com.externalblesniffer.blescanner
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.os.Build
 import android.util.Log
@@ -24,6 +25,8 @@ class BLEManager @Inject constructor(
         .setReportDelay(0)
         .build()
 
+    private var rssiThreshold: Int = 127
+
     private fun hexStringToByteArray(hexString: String): ByteArray {
         val result = ByteArray(hexString.length / 2)
 
@@ -41,8 +44,9 @@ class BLEManager @Inject constructor(
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             if (result != null) {
-                Log.d("BLE Manager", "scanRecord: ${result.scanRecord?.bytes.contentToString()}")
                 val rssi = result.rssi
+                if (rssi < rssiThreshold || (rssi == 127 && rssiThreshold == -100)) return
+                Log.d("BLE Manager", "scanRecord: ${result.scanRecord?.bytes.contentToString()}")
                 val advType = -1
                 val addrType = result.device.type
                 Log.d("BLEManager", "onScanResultAddr ${result.device.address}")
@@ -74,6 +78,10 @@ class BLEManager @Inject constructor(
     @SuppressLint("MissingPermission")
     fun stopScan() {
         scanner.stopScan(scanCallback)
+    }
+
+    fun changeRssi(rssi: Int) {
+        rssiThreshold = rssi
     }
 
 }
