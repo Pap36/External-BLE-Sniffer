@@ -106,7 +106,7 @@ class MyUSBManager @Inject constructor(
                 val rssi = toProcess[0]
                 val advType = toProcess[1]
                 val addrType = toProcess[2]
-                val mac = toProcess.sliceArray(3 until 9)
+                val mac = toProcess.sliceArray(3 until 9).reversedArray()
                 var manufacturerData = toProcess.sliceArray(9 until toProcess.size)
                 if (manufacturerData.isEmpty()) return toProcess
                 while (manufacturerData.isNotEmpty()) {
