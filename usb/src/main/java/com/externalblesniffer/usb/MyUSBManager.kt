@@ -15,8 +15,6 @@ import kotlinx.coroutines.launch
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.yield
-import java.io.ByteArrayInputStream
-import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +33,8 @@ class MyUSBManager @Inject constructor(
     private var incompleteData: ByteArray = byteArrayOf()
 
     private var rssiThreshold:Int = 127
+
+    private var previousResult: BLEScanResult? = null
 
     fun refresh() {
         val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
@@ -89,78 +89,46 @@ class MyUSBManager @Inject constructor(
 
     private suspend fun read() {
         yield()
-        val dataToRead = ByteArray(73)
+        val dataToRead = ByteArray(64)
         val readBytes = currentPort?.read(dataToRead, 1000)
-        Log.d("MyUSBManager", "read: ${dataToRead.contentToString()}")
-        incompleteData = processData(
-            try {
-                incompleteData + dataToRead.sliceArray(0 until (readBytes ?: 0))
-            } catch (e: Exception) {
-                ByteArray(0)
-            }
-        )
+        if (readBytes != 0 && readBytes != null) {
+            incompleteData = processData(
+                try {
+                    incompleteData + dataToRead.sliceArray(0 until (readBytes))
+                } catch (e: Exception) {
+                    ByteArray(0)
+                }
+            )
+        }
     }
 
     private fun processData(data: ByteArray): ByteArray {
-        var toProcess = data
-        while (toProcess.isNotEmpty()) {
-            try {
-                val rssi = toProcess[0]
-                val advType = toProcess[1]
-                val addrType = toProcess[2]
-                val mac = toProcess.sliceArray(3 until 9).reversedArray()
-                var manufacturerData = toProcess.sliceArray(9 until toProcess.size)
-                if (manufacturerData.isEmpty()) return toProcess
-                while (manufacturerData.isNotEmpty()) {
-                    val len = manufacturerData[0].toInt()
-                    if (len <= 0) {
-                        val manData = toProcess.sliceArray(
-                            9 until toProcess.size - manufacturerData.size
+        val toProcess = data
+        val length = data[0].toInt()
+        if (data.size < length + 1) return toProcess
+        val message = data.sliceArray(0 until length + 1)
+        val rssi = message[1].toInt()
+        val advType = message[2].toInt()
+        val addrType = message[3].toInt()
+        val addr = message.sliceArray(4 until 10).reversedArray()
+        val manData = message.sliceArray(10 until length + 1)
+        if (!(rssi < rssiThreshold || (rssi == 127 && rssiThreshold == -100))) {
+            val newResult = BLEScanResult(rssi, advType, addrType, addr, manData, "USB")
+            if(previousResult != null) {
+                if (newResult.adv_type == 4 && previousResult!!.adv_type in intArrayOf(0, 2) &&
+                    previousResult!!.addr.contentEquals(newResult.addr)
+                ) {
+                    scanResults.registerUSBScanResult(
+                        newResult.copy(
+                            adv_type = 4,
+                            data = previousResult!!.data + newResult.data
                         )
-                        val readData = toProcess.sliceArray(
-                            0 until toProcess.size - manufacturerData.size
-                        )
-                        // Log.d("MyUSBManager", "read1: ${readData.contentToString()}")
-                        if (!(rssi.toInt() < rssiThreshold || (rssi.toInt() == 127 && rssiThreshold == -100)))
-                            scanResults.registerUSBScanResult(
-                                BLEScanResult(
-                                    rssi = rssi.toInt(),
-                                    adv_type = advType.toInt(),
-                                    addr_type = addrType.toInt(),
-                                    addr = mac,
-                                    data = manData,
-                                    source = "USB"
-                                )
-                        )
-                        toProcess = toProcess.sliceArray(
-                            toProcess.size - manufacturerData.size until toProcess.size
-                        )
-                        break
-                    }
-                    if (manufacturerData.size < len + 1) return toProcess
-                    manufacturerData = manufacturerData.sliceArray(len + 1 until manufacturerData.size)
-                }
-                if (manufacturerData.isEmpty()) {
-                    val manData = toProcess.sliceArray(9 until toProcess.size)
-                    Log.d("MyUSBManager", "read2: ${toProcess.contentToString()}")
-                    if (!(rssi.toInt() < rssiThreshold || (rssi.toInt() == 127 && rssiThreshold == -100)))
-                        scanResults.registerUSBScanResult(
-                            BLEScanResult(
-                                rssi = rssi.toInt(),
-                                adv_type = advType.toInt(),
-                                addr_type = addrType.toInt(),
-                                addr = mac,
-                                data = manData,
-                                source = "USB"
-                            )
                     )
-                    toProcess = byteArrayOf()
-                }
-            } catch (e: Exception) {
-                return toProcess
-            }
+                } else scanResults.registerUSBScanResult(newResult)
+            } else scanResults.registerUSBScanResult(newResult)
+            previousResult = newResult
         }
-        return byteArrayOf()
+        return data.sliceArray(length + 1 until data.size)
     }
 
     fun disconnect() {
