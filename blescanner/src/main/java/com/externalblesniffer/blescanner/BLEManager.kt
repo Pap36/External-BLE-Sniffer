@@ -46,12 +46,9 @@ class BLEManager @Inject constructor(
             if (result != null) {
                 val rssi = result.rssi
                 if (rssi < rssiThreshold || (rssi == 127 && rssiThreshold == -100)) return
-                Log.d("BLE Manager", "scanRecord: ${result.scanRecord?.bytes.contentToString()}")
                 val advType = -1
                 val addrType = result.device.type
-                Log.d("BLEManager", "onScanResultAddr ${result.device.address}")
                 val addr = hexStringToByteArray(result.device.address.replace(":", ""))
-                Log.d("BLEManager", "onScanResultAddr after: ${addr.contentToString()}")
                 // addr is string of the form AA:BB:CC:DD:EE:FF
                 val data = truncateData(result.scanRecord?.bytes ?: ByteArray(0))
                 scanResults.registerBLESanResult(BLEScanResult(rssi, advType, addrType, addr, data, "BLE"))
