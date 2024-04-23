@@ -10,6 +10,7 @@ data class BLEScanResult(
     val addr: ByteArray,
     val data: ByteArray,
     val source: String,
+    val timeStamp: Long = System.currentTimeMillis()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
