@@ -8,3 +8,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+/.idea
+/PythonResultsParser/__pycache__
+/PythonResultsParser/data
+.idea/deploymentTargetDropDown.xml
