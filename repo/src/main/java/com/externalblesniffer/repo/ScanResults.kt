@@ -26,13 +26,13 @@ class ScanResults @Inject constructor() {
     val bleResults: ArrayList<BLEScanResult> = arrayListOf()
 
     private val _scannedUSBResults = MutableSharedFlow<BLEScanResult?>(
-        extraBufferCapacity = 10000,
+        extraBufferCapacity = 100000,
     )
 
     val scannedUSBResults = _scannedUSBResults.asSharedFlow()
 
     private val _scannedBLEResults = MutableSharedFlow<BLEScanResult?>(
-        extraBufferCapacity = 10000,
+        extraBufferCapacity = 100000,
     )
     val scannedBLEResults = _scannedBLEResults.asSharedFlow()
 
