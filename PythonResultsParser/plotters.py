@@ -54,6 +54,20 @@ def extract_addresses(data):
     # extract the addresses from the data and the number of callbacks for each address
     return [d.address if d.localName == "" else d.localName for d in data]
 
+def centraliseAdvTypeUSB(data, addresses):
+    typeDict = {}
+    for addr in addresses:
+        typeDict[addr] = {}
+        types = [d.adv_type for d in data if d.address == addr or d.localName == addr]
+        for t in types:
+            if t not in typeDict[addr]:
+                typeDict[addr][t] = 1
+            else:
+                typeDict[addr][t] += 1
+        # sort the dictionary by the number of callbacks
+        typeDict[addr] = dict(sorted(typeDict[addr].items(), key=lambda x: x[1], reverse=True))
+    return typeDict
+
 def print_address_count_comparison(usb_data, ble_data, filename=""):
     # plot the number of callbacks for each device
     usb_data = populateLocalNameData(usb_data)
@@ -67,14 +81,15 @@ def print_address_count_comparison(usb_data, ble_data, filename=""):
         (usb_address_count[a] if usb_address_count[a] != 0 else 1), 2) for a in all_addresses}
     average_rssi_address_ble = {a: round(sum([d.rssi for d in ble_data if d.address == a or d.localName == a]) / 
         (ble_address_count[a] if ble_address_count[a] != 0 else 1), 2) for a in all_addresses}
+    usb_typeDict = centraliseAdvTypeUSB(usb_data, all_addresses)
     
     # zip together the addresses, number of callbacks and average rssi's and order by rssi_usb
     zipped = sorted(list(zip(all_addresses, usb_address_count.values(), average_rssi_address_usb.values(), 
-        ble_address_count.values(), average_rssi_address_ble.values())), key=lambda x: x[2], reverse=True)
+        ble_address_count.values(), average_rssi_address_ble.values(), usb_typeDict.values())), key=lambda x: x[2], reverse=True)
     print(f'Address count comparison for {filename}:')
-    zipped.insert(0, ('Address', 'USB Count', 'Average RSSI USB', 'BLE Count', 'Average RSSI BLE'))
+    zipped.insert(0, ('Address', 'USB Count', 'Average RSSI USB', 'BLE Count', 'Average RSSI BLE', 'USB Adv Types'))
     for a in zipped:
-        print(f'{a[0]:<30} {a[1]:>15} {a[2]:>20} {a[3]:>15} {a[4]:>20}')
+        print(f'{a[0]:<30} {a[1]:>15} {a[2]:>20} {a[3]:>15} {a[4]:>20} \t{a[5]}')
 
 def print_address_count(data, filename=""):
     # plot the number of callbacks for each device
