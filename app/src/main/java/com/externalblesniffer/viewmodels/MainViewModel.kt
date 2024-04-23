@@ -72,6 +72,9 @@ class MainViewModel @Inject constructor(
         usbManager.changeRssi(rssiValue)
     }
 
+    fun changeJoinRspReq(joinRspReq: Boolean) {
+        usbManager.changeJoinRspReq(joinRspReq)
+    }
     fun disconnect() = usbManager.disconnect()
 
 }

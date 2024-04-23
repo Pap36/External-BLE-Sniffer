@@ -33,6 +33,7 @@ class MyUSBManager @Inject constructor(
     private var incompleteData: ByteArray = byteArrayOf()
 
     private var rssiThreshold:Int = 127
+    private var joinRspReq:Boolean = true
 
     private var previousResult: BLEScanResult? = null
 
@@ -103,9 +104,8 @@ class MyUSBManager @Inject constructor(
     }
 
     private fun processData(data: ByteArray): ByteArray {
-        val toProcess = data
         val length = data[0].toInt()
-        if (data.size < length + 1) return toProcess
+        if (data.size < length + 1) return data
         val message = data.sliceArray(0 until length + 1)
         val rssi = message[1].toInt()
         val advType = message[2].toInt()
@@ -113,20 +113,24 @@ class MyUSBManager @Inject constructor(
         val addr = message.sliceArray(4 until 10).reversedArray()
         val manData = message.sliceArray(10 until length + 1)
         if (!(rssi < rssiThreshold || (rssi == 127 && rssiThreshold == -100))) {
-            val newResult = BLEScanResult(rssi, advType, addrType, addr, manData, "USB")
-            if(previousResult != null) {
-                if (newResult.adv_type == 4 && previousResult!!.adv_type in intArrayOf(0, 2) &&
-                    previousResult!!.addr.contentEquals(newResult.addr)
-                ) {
-                    scanResults.registerUSBScanResult(
-                        newResult.copy(
+            var newResult: BLEScanResult? = BLEScanResult(rssi, advType, addrType, addr, manData, "USB")
+            if (joinRspReq) {
+                if (previousResult != null) {
+                    if (newResult?.adv_type == 4 && previousResult!!.adv_type in intArrayOf(0, 2) &&
+                        previousResult!!.addr.contentEquals(newResult.addr)
+                    ) {
+                        previousResult = newResult.copy(
                             adv_type = 4,
                             data = previousResult!!.data + newResult.data
                         )
-                    )
-                } else scanResults.registerUSBScanResult(newResult)
-            } else scanResults.registerUSBScanResult(newResult)
-            previousResult = newResult
+                        newResult = null
+                    }
+                }
+                previousResult?.let { scanResults.registerUSBScanResult(it) }
+                previousResult = newResult
+            } else {
+                newResult?.let { scanResults.registerUSBScanResult(it) }
+            }
         }
         return data.sliceArray(length + 1 until data.size)
     }
@@ -143,6 +147,10 @@ class MyUSBManager @Inject constructor(
 
     fun changeRssi(rssi: Int) {
         rssiThreshold = rssi
+    }
+
+    fun changeJoinRspReq(joinRspReq: Boolean) {
+        this.joinRspReq = joinRspReq
     }
 
 }
