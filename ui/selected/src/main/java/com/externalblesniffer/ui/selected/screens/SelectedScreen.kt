@@ -42,6 +42,9 @@ fun SelectedScreen(
     val coroutineScope = rememberCoroutineScope()
     val rssiFinal by viewModel.rssiFinal.collectAsStateWithLifecycle(initialValue = -70)
     val joinRspReq by viewModel.joinRspReq.collectAsStateWithLifecycle()
+    val scanTypePassive by viewModel.scanTypePassive.collectAsStateWithLifecycle()
+    val scanWindowFinal by viewModel.scanWindowValue.collectAsStateWithLifecycle()
+    val scanIntervalFinal by viewModel.scanIntervalValue.collectAsStateWithLifecycle()
 
     val fileExporter = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(mimeType = "application/json")
@@ -57,6 +60,18 @@ fun SelectedScreen(
 
     LaunchedEffect(joinRspReq) {
         onUIEvent(UIEvents.OnJoinRspReqChange(joinRspReq))
+    }
+
+    LaunchedEffect(scanTypePassive) {
+        onUIEvent(UIEvents.OnScanTypePassiveChange(scanTypePassive))
+    }
+
+    LaunchedEffect(scanWindowFinal) {
+        onUIEvent(UIEvents.OnScanWindowValueChange(scanWindowFinal))
+    }
+
+    LaunchedEffect(scanIntervalFinal) {
+        onUIEvent(UIEvents.OnScanIntervalValueChange(scanIntervalFinal))
     }
 
     Column(
@@ -84,6 +99,40 @@ fun SelectedScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = "USB Scan Window: ${viewModel.formatTime3Digits(scanWindowFinal)} ms")
+            Slider(
+                value = scanWindowFinal / 0.625f,
+                onValueChange = {
+                    viewModel.changeScanWindowValue(it.toInt())
+                },
+                valueRange = 160f..1600f,
+                steps = 1441,
+                enabled = !isScanning
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = "USB Scan Interval: ${viewModel.formatTime3Digits(scanIntervalFinal)} ms")
+            Slider(
+                value = scanIntervalFinal / 0.625f,
+                onValueChange = {
+                    viewModel.changeScanIntervalValue(it.toInt())
+                },
+                valueRange = 160f..1600f,
+                steps = 1441,
+                enabled = !isScanning
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -92,6 +141,21 @@ fun SelectedScreen(
                 checked = joinRspReq,
                 onCheckedChange = {
                     viewModel.changeJoinRspReq(it)
+                },
+                enabled = !isScanning
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("nRF Scan Type: ${if (scanTypePassive) "Passive" else "Active"}")
+            Switch(
+                checked = scanTypePassive,
+                onCheckedChange = {
+                    viewModel.changeScanTypePassive(it)
                 },
                 enabled = !isScanning
             )

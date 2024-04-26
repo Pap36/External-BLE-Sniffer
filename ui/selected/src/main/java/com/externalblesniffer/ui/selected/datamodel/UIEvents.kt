@@ -8,4 +8,7 @@ sealed class UIEvents {
     data class ExportResults(val uri: Uri): UIEvents()
     data class OnRSSIChange(val rssi: Int): UIEvents()
     data class OnJoinRspReqChange(val joinRspReq: Boolean): UIEvents()
+    data class OnScanTypePassiveChange(val scanTypePassive: Boolean): UIEvents()
+    data class OnScanWindowValueChange(val scanWindowValue: Float): UIEvents()
+    data class OnScanIntervalValueChange(val scanIntervalValue: Float): UIEvents()
 }

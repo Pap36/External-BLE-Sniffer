@@ -153,4 +153,28 @@ class MyUSBManager @Inject constructor(
         this.joinRspReq = joinRspReq
     }
 
+    fun changeScanTypePassive(scanTypePassive: Boolean) {
+        if (scanTypePassive) write(byteArrayOf(0x03))
+        else write(byteArrayOf(0x02))
+    }
+
+    fun changeScanWindowValue(scanWindowValue: Float) {
+        val increments = (scanWindowValue / 0.625).toInt()
+        val data = ByteArray(3)
+        // convert increments in a size-2 bytearray
+        data[0] = 0x04
+        data[2] = (increments and 0xFF).toByte()
+        data[1] = ((increments shr 8) and 0xFF).toByte()
+        write(data)
+    }
+
+    fun changeScanIntervalValue(scanIntervalValue: Float) {
+        val increments = (scanIntervalValue / 0.625).toInt()
+        val data = ByteArray(3)
+        data[0] = 0x05
+        data[2] = (increments and 0xFF).toByte()
+        data[1] = ((increments shr 8) and 0xFF).toByte()
+        write(data)
+    }
+
 }

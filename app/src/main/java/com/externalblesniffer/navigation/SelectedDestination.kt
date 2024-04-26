@@ -37,6 +37,15 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.OnJoinRspReqChange -> {
                         mainViewModel.changeJoinRspReq(uiEvent.joinRspReq)
                     }
+                    is UIEvents.OnScanTypePassiveChange -> {
+                        mainViewModel.changeScanTypePassive(uiEvent.scanTypePassive)
+                    }
+                    is UIEvents.OnScanWindowValueChange -> {
+                        mainViewModel.changeScanWindowValue(uiEvent.scanWindowValue)
+                    }
+                    is UIEvents.OnScanIntervalValueChange -> {
+                        mainViewModel.changeScanIntervalValue(uiEvent.scanIntervalValue)
+                    }
                 }
             }
         )

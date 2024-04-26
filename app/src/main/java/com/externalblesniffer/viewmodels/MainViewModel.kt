@@ -75,6 +75,18 @@ class MainViewModel @Inject constructor(
     fun changeJoinRspReq(joinRspReq: Boolean) {
         usbManager.changeJoinRspReq(joinRspReq)
     }
+
+    fun changeScanTypePassive(scanTypePassive: Boolean) {
+        usbManager.changeScanTypePassive(scanTypePassive)
+    }
+
+    fun changeScanWindowValue(scanWindowValue: Float) {
+        usbManager.changeScanWindowValue(scanWindowValue)
+    }
+
+    fun changeScanIntervalValue(scanIntervalValue: Float) {
+        usbManager.changeScanIntervalValue(scanIntervalValue)
+    }
     fun disconnect() = usbManager.disconnect()
 
 }

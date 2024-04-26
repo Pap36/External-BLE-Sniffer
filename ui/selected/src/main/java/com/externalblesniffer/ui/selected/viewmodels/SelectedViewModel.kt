@@ -39,7 +39,22 @@ class SelectedViewModel @Inject constructor(
     private val _joinRspReq = MutableStateFlow(true)
     val joinRspReq = _joinRspReq.asStateFlow()
 
+    private val _scanTypePassive = MutableStateFlow(true)
+    val scanTypePassive = _scanTypePassive.asStateFlow()
+
+    private val _scanWindowValue = MutableStateFlow(100f)
+    val scanWindowValue = _scanWindowValue.asStateFlow()
+
+    private val _scanIntervalValue = MutableStateFlow(100f)
+    val scanIntervalValue = _scanIntervalValue.asStateFlow()
+
     val rssiFinal = _rssiFilterValue
+        .debounce(300)
+
+    val scanWindowFinal = _scanWindowValue
+        .debounce(300)
+
+    val scanIntervalFinal = _scanIntervalValue
         .debounce(300)
 
     val usbResultsCount = scanResults.usbResultsCount
@@ -97,6 +112,29 @@ class SelectedViewModel @Inject constructor(
 
     fun changeJoinRspReq(newVal: Boolean) {
         _joinRspReq.value = newVal
+    }
+
+    fun changeScanTypePassive(newVal: Boolean) {
+        _scanTypePassive.value = newVal
+    }
+
+    fun changeScanWindowValue(value: Int) {
+        Log.d("SelectedViewModel", "changeScanWindowValue: $value")
+        // round value to 3 decimals
+        val roundValue = value * 0.625f
+        if (roundValue < _scanIntervalValue.value) _scanIntervalValue.value = roundValue
+        _scanWindowValue.value = roundValue
+    }
+
+    fun changeScanIntervalValue(value: Int) {
+        Log.d("SelectedViewModel", "changeScanWindowValue: $value")
+        val roundValue = value * 0.625f
+        if (roundValue > _scanWindowValue.value) _scanWindowValue.value = roundValue
+        _scanIntervalValue.value = roundValue
+    }
+
+    fun formatTime3Digits(time: Float): String {
+        return "%.3f".format(time)
     }
 
     fun startScan() {
