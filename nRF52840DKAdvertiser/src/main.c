@@ -49,6 +49,9 @@ uint8_t ring_buffer[RING_BUF_SIZE];
 struct ring_buf ringbuf;
 // struct ring_buf lengthsbuf;
 struct device *curr_dev;
+bool advertising = false;
+int timeout = 5000;
+long startTime = 0;
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 USBD_CONFIGURATION_DEFINE(config_1, USB_SCD_SELF_POWERED, 200);
@@ -126,6 +129,21 @@ static struct gpio_dt_spec led = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios,
 						     {0});
 
 
+static struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(0, 0x0020, 0x0020, NULL);
+
+static uint8_t name_data[] = {0x6e, 0x52, 0x46, 0x20, 0x41, 0x64, 0x76,
+				0x65, 0x72, 0x74, 0x69, 0x73, 0x65, 0x72};
+
+static uint8_t mfg_data[] = {0x00, 0x00, 0x33, 0x3f};
+
+static const struct bt_data ad[] = {
+	BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, 4),
+};
+
+static struct bt_data sd[] = {
+	BT_DATA(BT_DATA_NAME_COMPLETE, name_data, 14),
+};
+
 static void interrupt_handler(const struct device *dev, void *user_data)
 {
 	ARG_UNUSED(user_data);
@@ -140,65 +158,89 @@ static void interrupt_handler(const struct device *dev, void *user_data)
 			if (recv_len < 0) {
 				printk("Failed to read UART FIFO");
 				recv_len = 0;
+				return;
 			};
+
+			curr_dev = dev;
 
 			// check received data 0x00 stop 0x01 start 0x02 active scanning 0x03 passive scanning
 			if (buffer[0] == 0x00) {
-				// stop scanning
-				bt_le_scan_stop();
+				// stop advertising
+				bt_le_adv_stop();
+				// set the led to 0
+				gpio_pin_set_dt(&led, 0);
+				advertising = false;
+				// send 0x00 through uart
+				uint8_t toSend[1] = {0x00};
+				ring_buf_put(&ringbuf, toSend, 1);
+				uart_irq_tx_enable(curr_dev);
 			} else if (buffer[0] == 0x01) {
-				// start scanning
-				curr_dev = dev;
+				// start advertising
+				int err = bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+				startTime = k_uptime_get();
+				advertising = true;
+				if (err) {
+					printk("Advertising failed to start (err %d)\n", err);
+					return;
+				}
+				// set the led to 1
+				gpio_pin_set_dt(&led, 1);
+				// send 0x01 through uart
+				uint8_t toSend[1] = {0x01};
+				ring_buf_put(&ringbuf, toSend, 1);
+				uart_irq_tx_enable(curr_dev);
 			} else if (buffer[0] == 0x02) {
-				// active scanning
+				// timeout
+				timeout = buffer[1] * 1000;
 			} else if (buffer[0] == 0x03) {
-				// passive scanning
+				// advertising interval min
+				adv_param->interval_min = (buffer[1] << 8) | buffer[2];
 			} else if (buffer[0] == 0x04) {
-				// scan window in buffer 1 and 2
+				// advertising interval max
+				adv_param->interval_max = (buffer[1] << 8) | buffer[2];
 			} else if (buffer[0] == 0x05) {
-				// scan interval in buffer 1 and 2
+				// enable Scan Response Data
+				bool option = buffer[1] == 0x01;
+				if (option) { 
+					sd->data = name_data;
+					sd->data_len = 14;
+				}
+				else {
+					sd->data = NULL;
+					sd->data_len = 0;
+				}
 			} else {
 				printk("Unknown command");
 			}
 		}
 
 		if (uart_irq_tx_ready(dev)) {
-			// uint8_t lengthToRead[1];
 			int rb_len, send_len;
-			// lb_len = ring_buf_get(&lengthsbuf, lengthToRead, 1);
 			uint8_t buffer[73];
 			rb_len = ring_buf_get(&ringbuf, buffer, sizeof(buffer));
 
 			if (!rb_len) {
-				printk("Ring buffer empty, disable TX IRQ");
+				printk("Ring buffer empty, disable TX IRQ\n");
 				uart_irq_tx_disable(dev);
 				continue;
 			}
 
 			send_len = uart_fifo_fill(dev, buffer, rb_len);
+			// print the bytes contents sent to the uart
+			printk("Sending: ");
+			for (int i = 0; i < send_len; i++) {
+				printk("%x ", buffer[i]);
+			}
+			printk("\n");
+
 			if (send_len < rb_len) {
-				printk("Drop %d bytes", rb_len - send_len);
+				printk("Drop %d bytes\n", rb_len - send_len);
 			}
 
-			printk("ringbuf -> tty fifo %d bytes", send_len);
+			printk("ringbuf -> tty fifo %d bytes\n", send_len);
 		}
 	}
 }
-
-
-
-static uint8_t name_data[] = {0x6e, 0x52, 0x46, 0x20, 0x41, 0x64, 0x76,
-				0x65, 0x72, 0x74, 0x69, 0x73, 0x65, 0x72};
-
-static uint8_t mfg_data[] = {0x00, 0x00, 0x33, 0x3f};
-
-static const struct bt_data ad[] = {
-	BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, 4),
-};
-
-static const struct bt_data sd[] = {
-	BT_DATA(BT_DATA_NAME_COMPLETE, name_data, 14),
-};
 
 static void button1_pressed(const struct device *dev, struct gpio_callback *cb,
 				unsigned int pins)
@@ -330,16 +372,16 @@ int main(void)
 
 	printk("DTR set");
 
-	/* They are optional, we use them to test the interrupt endpoint */
-	ret = uart_line_ctrl_set(dev, UART_LINE_CTRL_DCD, 1);
-	if (ret) {
-		printk("Failed to set DCD, ret code %d", ret);
-	}
+	// /* They are optional, we use them to test the interrupt endpoint */
+	// ret = uart_line_ctrl_set(dev, UART_LINE_CTRL_DCD, 1);
+	// if (ret) {
+	// 	printk("Failed to set DCD, ret code %d", ret);
+	// }
 
-	ret = uart_line_ctrl_set(dev, UART_LINE_CTRL_DSR, 1);
-	if (ret) {
-		printk("Failed to set DSR, ret code %d", ret);
-	}
+	// ret = uart_line_ctrl_set(dev, UART_LINE_CTRL_DSR, 1);
+	// if (ret) {
+	// 	printk("Failed to set DSR, ret code %d", ret);
+	// }
 
 	/* Wait 100ms for the host to do all settings */
 	k_msleep(100);
@@ -356,36 +398,55 @@ int main(void)
 	/* Enable rx interrupts */
 	uart_irq_rx_enable(dev);
 
-	printk("Press the button\n");
-	bool scanning = false;
-	long startTime = k_uptime_get();
+	/* Give CPU resources to low priority threads. */
+	k_sleep(K_MSEC(100));
+	// uint8_t toSend[1] = {0x01};
+	// int rblen = ring_buf_put(&ringbuf, toSend, 1);
+	// if(rblen) uart_irq_tx_enable(curr_dev);
+	// /* Give CPU resources to low priority threads. */
+	// k_sleep(K_MSEC(100));
+
 	while(1) {
 		int start = gpio_pin_get_dt(&button1);
 		int stop = gpio_pin_get_dt(&button2);
-		// printk("val: %d\n", val);
-		if (k_uptime_get() - startTime > 5000 && scanning) {
-			printk("Timeout\n");
+		if (k_uptime_get() - startTime > timeout && advertising) {
 			bt_le_adv_stop();
 			// set the led to 0
 			gpio_pin_set_dt(&led, 0);
-			scanning = false;
+			advertising = false;
+			// send 0x00 through uart
+			if (curr_dev) {
+				uint8_t toSend[1] = {0x00};
+				ring_buf_put(&ringbuf, toSend, 1);
+				uart_irq_tx_enable(curr_dev);
+			}
 		}
-		if (start > 0 && !scanning) {
-			int err = bt_le_adv_start(BT_LE_ADV_PARAM(0, 0x0020, 0x0020, NULL), 
-				ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+		if (start > 0 && !advertising) {
+			int err = bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
 			if (err) {
 				printk("Advertising failed to start (err %d)\n", err);
 				return 0;
 			}
 			startTime = k_uptime_get();
-			scanning = true;
-		} else if (stop > 0 && scanning) {
+			advertising = true;
+			if(curr_dev) {
+				uint8_t toSend[1] = {0x01};
+				int rblen = ring_buf_put(&ringbuf, toSend, 1);
+				if(rblen) uart_irq_tx_enable(curr_dev);
+			}
+		} else if (stop > 0 && advertising) {
 			int err = bt_le_adv_stop();
 			if (err) {
 				printk("Advertising failed to stop (err %d)\n", err);
 				return 0;
 			}
-			scanning = false;
+			advertising = false;
+			// send 0x00 through uart
+			if(curr_dev) {
+				uint8_t toSend[1] = {0x00};
+				ring_buf_put(&ringbuf, toSend, 1);
+				uart_irq_tx_enable(curr_dev);
+			} 
 		}
 		k_msleep(SLEEP_TIME_MS);
 	}

@@ -28,6 +28,12 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.StopScan -> {
                         mainViewModel.stopScan()
                     }
+                    is UIEvents.StartAdv -> {
+                        mainViewModel.startAdv()
+                    }
+                    is UIEvents.StopAdv -> {
+                        mainViewModel.stopAdv()
+                    }
                     is UIEvents.ExportResults -> {
                         mainViewModel.exportResults(uiEvent.uri)
                     }
@@ -45,6 +51,18 @@ val SelectedDestination = defineDestination(Selected) {
                     }
                     is UIEvents.OnScanIntervalValueChange -> {
                         mainViewModel.changeScanIntervalValue(uiEvent.scanIntervalValue)
+                    }
+                    is UIEvents.OnAdvertisingMinIntervalChange -> {
+                        mainViewModel.changeAdvertisingMinInterval(uiEvent.advertisingMinInterval)
+                    }
+                    is UIEvents.OnAdvertisingMaxIntervalChange -> {
+                        mainViewModel.changeAdvertisingMaxInterval(uiEvent.advertisingMaxInterval)
+                    }
+                    is UIEvents.OnAdvTimeoutValueChange -> {
+                        mainViewModel.changeAdvTimeoutValue(uiEvent.advTimeoutValue)
+                    }
+                    is UIEvents.OnBoardChange -> {
+                        mainViewModel.changeBoard(uiEvent.isScanner)
                     }
                 }
             }

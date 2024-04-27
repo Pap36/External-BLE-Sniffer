@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -24,6 +25,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.externalblesniffer.ui.selected.datamodel.UIEvents
 import com.externalblesniffer.ui.selected.viewmodels.SelectedViewModel
+import com.externalblesniffer.ui.selected.views.AdvertiserView
+import com.externalblesniffer.ui.selected.views.LaunchedEffects
+import com.externalblesniffer.ui.selected.views.ScannerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -37,14 +41,23 @@ fun SelectedScreen(
     val maximumCount by viewModel.maximumCount.collectAsStateWithLifecycle()
     val usbResultsCount by viewModel.usbResultsCount.collectAsStateWithLifecycle()
     val bleResultsCount by viewModel.bleResultsCount.collectAsStateWithLifecycle()
-    val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
+    val isOn by viewModel.isOn.collectAsStateWithLifecycle()
     val rssiFilterValue by viewModel.rssiFilterValue.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     val rssiFinal by viewModel.rssiFinal.collectAsStateWithLifecycle(initialValue = -70)
     val joinRspReq by viewModel.joinRspReq.collectAsStateWithLifecycle()
     val scanTypePassive by viewModel.scanTypePassive.collectAsStateWithLifecycle()
-    val scanWindowFinal by viewModel.scanWindowValue.collectAsStateWithLifecycle()
-    val scanIntervalFinal by viewModel.scanIntervalValue.collectAsStateWithLifecycle()
+    val scanWindowFinal by viewModel.scanWindowFinal.collectAsStateWithLifecycle(initialValue = 100f)
+    val scanWindowValue by viewModel.scanWindowValue.collectAsStateWithLifecycle()
+    val scanIntervalFinal by viewModel.scanIntervalFinal.collectAsStateWithLifecycle(initialValue = 100f)
+    val scanIntervalValue by viewModel.scanIntervalValue.collectAsStateWithLifecycle()
+    val isScanner by viewModel.isScanner.collectAsStateWithLifecycle()
+
+    // for adv
+    val advertisingMinInterval by viewModel.advertisingMinInterval.collectAsStateWithLifecycle()
+    val advertisingMaxInterval by viewModel.advertisingMaxInterval.collectAsStateWithLifecycle()
+    val advTimeoutValue by viewModel.advTimeoutValue.collectAsStateWithLifecycle()
+    val advTimeoutFinal by viewModel.advTimeoutFinal.collectAsStateWithLifecycle(initialValue = 5)
 
     val fileExporter = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(mimeType = "application/json")
@@ -54,176 +67,94 @@ fun SelectedScreen(
         }
     }
 
-    LaunchedEffect(rssiFinal) {
-        onUIEvent(UIEvents.OnRSSIChange(rssiFinal))
+    val boardState = if (isOn) {
+        if (isScanner) "Scanning" else "Advertising"
+    } else {
+        if (isScanner) "Not Scanning" else "Not Advertising"
     }
 
-    LaunchedEffect(joinRspReq) {
-        onUIEvent(UIEvents.OnJoinRspReqChange(joinRspReq))
-    }
-
-    LaunchedEffect(scanTypePassive) {
-        onUIEvent(UIEvents.OnScanTypePassiveChange(scanTypePassive))
-    }
-
-    LaunchedEffect(scanWindowFinal) {
-        onUIEvent(UIEvents.OnScanWindowValueChange(scanWindowFinal))
-    }
-
-    LaunchedEffect(scanIntervalFinal) {
-        onUIEvent(UIEvents.OnScanIntervalValueChange(scanIntervalFinal))
-    }
+    LaunchedEffects(
+        rssiFinal = rssiFinal,
+        joinRspReq = joinRspReq,
+        scanTypePassive = scanTypePassive,
+        scanWindowFinal = scanWindowFinal,
+        scanIntervalFinal = scanIntervalFinal,
+        advertisingMinInterval = advertisingMinInterval,
+        advertisingMaxInterval = advertisingMaxInterval,
+        advTimeoutFinal = advTimeoutFinal,
+        onUIEvent = onUIEvent,
+    )
 
     Column(
-        modifier = modifier.padding(16.dp, 0.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly,
+        // verticalArrangement = Arrangement.SpaceEvenly,
     ) {
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "RSSI: $rssiFilterValue dBm")
-            Slider(
-                value = -rssiFilterValue.toFloat(),
-                onValueChange = {
-                    viewModel.changeRSSI(-it.toInt())
-                },
-                valueRange = 30f..100f,
-                steps = 71,
-                enabled = !isScanning
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "USB Scan Window: ${viewModel.formatTime3Digits(scanWindowFinal)} ms")
-            Slider(
-                value = scanWindowFinal / 0.625f,
-                onValueChange = {
-                    viewModel.changeScanWindowValue(it.toInt())
-                },
-                valueRange = 160f..1600f,
-                steps = 1441,
-                enabled = !isScanning
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "USB Scan Interval: ${viewModel.formatTime3Digits(scanIntervalFinal)} ms")
-            Slider(
-                value = scanIntervalFinal / 0.625f,
-                onValueChange = {
-                    viewModel.changeScanIntervalValue(it.toInt())
-                },
-                valueRange = 160f..1600f,
-                steps = 1441,
-                enabled = !isScanning
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Join Scan RSP with Initial ADV")
+            Text("Board Type: ${if (isScanner) "Scanner" else "Advertiser"}")
             Switch(
-                checked = joinRspReq,
+                checked = isScanner,
                 onCheckedChange = {
-                    viewModel.changeJoinRspReq(it)
+                    onUIEvent(UIEvents.OnBoardChange(it))
                 },
-                enabled = !isScanning
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("nRF Scan Type: ${if (scanTypePassive) "Passive" else "Active"}")
-            Switch(
-                checked = scanTypePassive,
-                onCheckedChange = {
-                    viewModel.changeScanTypePassive(it)
-                },
-                enabled = !isScanning
+                enabled = !isOn
             )
         }
 
         Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = "USB: $usbResultsCount",
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "USB Result Count:")
-            LinearProgressIndicator(
-                modifier = Modifier.padding(start=16.dp),
-                progress = { usbResultsCount.toFloat() / maximumCount.toFloat() },
-            )
-        }
 
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = "BLE / All % Result Count: ${bleResultsCount.toFloat() * 100 / maximumCount.toFloat()}",
-            style = MaterialTheme.typography.titleLarge
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, top = 4.dp, bottom = 8.dp),
+            text = "Board State: $boardState"
         )
 
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = "BLE: $bleResultsCount",
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+        if (isScanner) ScannerView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 8.dp),
+            rssiFilterValue = rssiFilterValue,
+            scanWindowValue = scanWindowValue,
+            scanIntervalValue = scanIntervalValue,
+            joinRspReq = joinRspReq,
+            scanTypePassive = scanTypePassive,
+            usbResultsCount = usbResultsCount,
+            bleResultsCount = bleResultsCount,
+            maximumCount = maximumCount,
+            isOn = isOn,
+            onUIEvent = onUIEvent,
+            fileExporter = fileExporter,
+            changeRSSI = viewModel::changeRSSI,
+            changeJoinRspReq = viewModel::changeJoinRspReq,
+            changeScanTypePassive = viewModel::changeScanTypePassive,
+            changeScanWindowValue = viewModel::changeScanWindowValue,
+            changeScanIntervalValue = viewModel::changeScanIntervalValue,
+            formatTime3Digits = viewModel::formatTime3Digits,
+            startScan = { onUIEvent(UIEvents.StartScan) },
+            stopScan = { onUIEvent(UIEvents.StopScan) }
+        ) else AdvertiserView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 8.dp),
+            advertisingMinInterval = advertisingMinInterval,
+            advertisingMaxInterval = advertisingMaxInterval,
+            advTimeoutValue = advTimeoutValue,
+            isOn = isOn,
+            changeAdvertisingMinInterval = viewModel::changeAdvertisingMinIntervalValue,
+            changeAdvertisingMaxInterval = viewModel::changeAdvertisingMaxIntervalValue,
+            changeAdvTimeoutValue = viewModel::changeAdvTimeoutValue,
+            startAdv = { onUIEvent(UIEvents.StartAdv) },
+            stopAdv = { onUIEvent(UIEvents.StopAdv) }
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "BLE Result Count:")
-            LinearProgressIndicator(
-                modifier = Modifier.padding(start=16.dp),
-                progress = { bleResultsCount.toFloat() / maximumCount.toFloat() },
-            )
-        }
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Button(onClick = {
-                onUIEvent(UIEvents.StartScan)
-                viewModel.startScan()
-            }) {
-                Text(text = "Start scanning")
-            }
-
-            Button(onClick = {
-                onUIEvent(UIEvents.StopScan)
-                viewModel.stopScan()
-            }) {
-                Text(text = "Stop scanning")
-            }
-        }
-
-        Button(onClick = {
-            fileExporter.launch("sniffedResults")
-        }) {
-            Text(text = "Export Results to JSON")
-        }
     }
 
 }

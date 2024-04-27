@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.externalblesniffer.repo.ScanResults
+import com.externalblesniffer.repo.USBDevices
 import com.externalblesniffer.repo.datamodel.BLEScanResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,6 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -28,10 +28,10 @@ import javax.inject.Inject
 @HiltViewModel
 class SelectedViewModel @Inject constructor(
     private val scanResults: ScanResults,
+    usbDevices: USBDevices,
 ): ViewModel() {
-
-    private val _isScanning = MutableStateFlow(false)
-    val isScanning = _isScanning.asStateFlow()
+    val isScanner = usbDevices.connectedBoardType
+    val isOn = usbDevices.isOn
 
     private val _rssiFilterValue = MutableStateFlow(-70)
     val rssiFilterValue = _rssiFilterValue.asStateFlow()
@@ -48,7 +48,19 @@ class SelectedViewModel @Inject constructor(
     private val _scanIntervalValue = MutableStateFlow(100f)
     val scanIntervalValue = _scanIntervalValue.asStateFlow()
 
+    private val _advertisingMinIntervalValue = MutableStateFlow(100f)
+    val advertisingMinInterval = _advertisingMinIntervalValue.asStateFlow()
+
+    private val _advertisingMaxIntervalValue = MutableStateFlow(100f)
+    val advertisingMaxInterval = _advertisingMaxIntervalValue.asStateFlow()
+
+    private val _advTimeoutValue = MutableStateFlow(5)
+    val advTimeoutValue = _advTimeoutValue.asStateFlow()
+
     val rssiFinal = _rssiFilterValue
+        .debounce(300)
+
+    val advTimeoutFinal = _advTimeoutValue
         .debounce(300)
 
     val scanWindowFinal = _scanWindowValue
@@ -62,6 +74,15 @@ class SelectedViewModel @Inject constructor(
 
     private val _usbJobDone = MutableStateFlow(false)
     private val _bleJobDone = MutableStateFlow(false)
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            isOn.combine(isScanner) { on, scanner ->
+                if (on && scanner) startScan()
+                else if (!on && !scanner) stopScan()
+            }.collect()
+        }
+    }
 
     private var usbCollectJob: Job = viewModelScope.launch(Dispatchers.IO) {
         scanResults.scannedUSBResults
@@ -110,6 +131,10 @@ class SelectedViewModel @Inject constructor(
         _rssiFilterValue.value = value
     }
 
+    fun changeAdvTimeoutValue(value: Int) {
+        _advTimeoutValue.value = value
+    }
+
     fun changeJoinRspReq(newVal: Boolean) {
         _joinRspReq.value = newVal
     }
@@ -133,12 +158,23 @@ class SelectedViewModel @Inject constructor(
         _scanIntervalValue.value = roundValue
     }
 
+    fun changeAdvertisingMinIntervalValue(value: Float) {
+        if (value > _advertisingMaxIntervalValue.value)
+            _advertisingMaxIntervalValue.value = value
+        _advertisingMinIntervalValue.value = value
+    }
+
+    fun changeAdvertisingMaxIntervalValue(value: Float) {
+        if (value < _advertisingMinIntervalValue.value)
+            _advertisingMinIntervalValue.value = value
+        _advertisingMaxIntervalValue.value = value
+    }
+
     fun formatTime3Digits(time: Float): String {
         return "%.3f".format(time)
     }
 
     fun startScan() {
-        _isScanning.value = true
         _usbJobDone.value = false
         _bleJobDone.value = false
         jobsDoneCollectJob.start()
@@ -149,7 +185,6 @@ class SelectedViewModel @Inject constructor(
     fun stopScan() {
         usbCollectJob.cancel()
         bleCollectJob.cancel()
-        _isScanning.value = false
     }
 
     private suspend fun processResults() {

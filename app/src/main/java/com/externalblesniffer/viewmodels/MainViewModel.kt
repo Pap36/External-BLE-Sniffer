@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.RECEIVER_EXPORTED
 import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
@@ -63,6 +64,9 @@ class MainViewModel @Inject constructor(
         usbManager.startScan()
     }
 
+    fun startAdv() = usbManager.startAdvertising()
+    fun stopAdv() = usbManager.stopAdvertising()
+
     fun stopScan() {
         bleManager.stopScan()
         usbManager.stopScan()
@@ -86,6 +90,27 @@ class MainViewModel @Inject constructor(
 
     fun changeScanIntervalValue(scanIntervalValue: Float) {
         usbManager.changeScanIntervalValue(scanIntervalValue)
+    }
+
+    fun changeAdvertisingMinInterval(advertisingMinInterval: Float) {
+        Log.d("MainViewModel", "changeAdvertisingMinInterval: $advertisingMinInterval")
+        val increments = (advertisingMinInterval / 0.625).toInt()
+        val value = increments * 0.625f
+        usbManager.changeAdvertisingMinInterval(value)
+    }
+
+    fun changeAdvertisingMaxInterval(advertisingMaxInterval: Float) {
+        val increments = (advertisingMaxInterval / 0.625).toInt()
+        val value = increments * 0.625f
+        usbManager.changeAdvertisingMinInterval(value)
+    }
+
+    fun changeAdvTimeoutValue(advTimeoutValue: Int) {
+        usbManager.changeAdvTimeoutValue(advTimeoutValue)
+    }
+
+    fun changeBoard(isScanner: Boolean) {
+        usbManager.changeBoard(isScanner)
     }
     fun disconnect() = usbManager.disconnect()
 

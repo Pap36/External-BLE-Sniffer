@@ -20,13 +20,13 @@ import javax.inject.Singleton
 
 const val USB_SERVICE = "usb_request_permission"
 
+@OptIn(ExperimentalUnsignedTypes::class)
 @Singleton
 class MyUSBManager @Inject constructor(
     private val usbManager: UsbManager,
     private val usbDevices: USBDevices,
     private val scanResults: ScanResults,
 ) {
-
     private var currentPort: UsbSerialPort? = null
     private var readingJob: Job? = null
 
@@ -75,17 +75,20 @@ class MyUSBManager @Inject constructor(
     }
 
     fun startScan() {
+        usbDevices.setIsOn(true)
         scanResults.clearUSBResults()
-        write(byteArrayOf(0x01))
+        write(ubyteArrayOf(0x01.toUByte()))
     }
 
     fun stopScan() {
-        write(byteArrayOf(0x00))
+        usbDevices.setIsOn(false)
+        write(ubyteArrayOf(0x00.toUByte()))
     }
 
-    private fun write(data: ByteArray) {
+    private fun write(data: UByteArray) {
         Log.d("MyUSBManager", "write${data.contentToString()}")
-        currentPort?.write(data, 1000)
+        currentPort?.write(data.toByteArray(), 1000)
+
     }
 
     private suspend fun read() {
@@ -93,13 +96,17 @@ class MyUSBManager @Inject constructor(
         val dataToRead = ByteArray(64)
         val readBytes = currentPort?.read(dataToRead, 1000)
         if (readBytes != 0 && readBytes != null) {
-            incompleteData = processData(
+            if(usbDevices.connectedBoardType.value) incompleteData = processData(
                 try {
                     incompleteData + dataToRead.sliceArray(0 until (readBytes))
                 } catch (e: Exception) {
                     ByteArray(0)
                 }
-            )
+            ) else {
+                Log.d("MyUSBManager", "read: ${dataToRead.contentToString()}")
+                val boardState = dataToRead[0].toInt()
+                usbDevices.setIsOn(boardState == 1)
+            }
         }
     }
 
@@ -154,27 +161,65 @@ class MyUSBManager @Inject constructor(
     }
 
     fun changeScanTypePassive(scanTypePassive: Boolean) {
-        if (scanTypePassive) write(byteArrayOf(0x03))
-        else write(byteArrayOf(0x02))
+        if (scanTypePassive) write(byteArrayOf(0x03).toUByteArray())
+        else write(byteArrayOf(0x02).toUByteArray())
     }
 
     fun changeScanWindowValue(scanWindowValue: Float) {
         val increments = (scanWindowValue / 0.625).toInt()
-        val data = ByteArray(3)
+        val data = UByteArray(3)
         // convert increments in a size-2 bytearray
-        data[0] = 0x04
-        data[2] = (increments and 0xFF).toByte()
-        data[1] = ((increments shr 8) and 0xFF).toByte()
+        data[0] = 0x04.toUByte()
+        data[2] = (increments and 0xFF).toUByte()
+        data[1] = ((increments shr 8) and 0xFF).toUByte()
         write(data)
     }
 
     fun changeScanIntervalValue(scanIntervalValue: Float) {
         val increments = (scanIntervalValue / 0.625).toInt()
-        val data = ByteArray(3)
-        data[0] = 0x05
-        data[2] = (increments and 0xFF).toByte()
-        data[1] = ((increments shr 8) and 0xFF).toByte()
+        val data = UByteArray(3)
+        data[0] = 0x05.toUByte()
+        data[2] = (increments and 0xFF).toUByte()
+        data[1] = ((increments shr 8) and 0xFF).toUByte()
         write(data)
+    }
+
+    fun changeAdvertisingMinInterval(advertisingMinInterval: Float) {
+        val increments = (advertisingMinInterval / 0.625).toInt()
+        val data = UByteArray(3)
+        data[0] = 0x04.toUByte()
+        data[2] = (increments and 0xFF).toUByte()
+        data[1] = ((increments shr 8) and 0xFF).toUByte()
+        write(data)
+    }
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    fun changeAdvertisingMaxInterval(advertisingMaxInterval: Float) {
+        val increments = (advertisingMaxInterval / 0.625).toInt()
+        val data = UByteArray(3)
+        data[0] = 0x03.toUByte()
+        data[2] = (increments and 0xFF).toUByte()
+        data[1] = ((increments shr 8) and 0xFF).toUByte()
+        write(data)
+    }
+
+    fun changeAdvTimeoutValue(advTimeoutValue: Int) {
+        val data = ByteArray(2)
+        data[0] = 0x02
+        data[1] = advTimeoutValue.toByte()
+        write(data.toUByteArray())
+    }
+
+    fun startAdvertising() {
+        write(byteArrayOf(0x01).toUByteArray())
+    }
+
+    fun stopAdvertising() {
+        write(byteArrayOf(0x00).toUByteArray())
+    }
+
+    fun changeBoard(isScanner: Boolean) {
+        usbDevices.setConnectedBoardType(isScanner)
     }
 
 }
