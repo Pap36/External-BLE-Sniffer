@@ -12,3 +12,4 @@ local.properties
 /PythonResultsParser/__pycache__
 /PythonResultsParser/data
 .idea/deploymentTargetDropDown.xml
+/nRF52840DKScanner/build
