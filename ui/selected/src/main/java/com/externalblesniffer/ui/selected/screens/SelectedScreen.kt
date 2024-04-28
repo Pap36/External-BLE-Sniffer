@@ -121,7 +121,7 @@ fun SelectedScreen(
         if (isScanner) ScannerView(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp, 8.dp),
+                .padding(16.dp, 4.dp),
             rssiFilterValue = rssiFilterValue,
             scanWindowValue = scanWindowValue,
             scanIntervalValue = scanIntervalValue,
@@ -138,13 +138,12 @@ fun SelectedScreen(
             changeScanTypePassive = viewModel::changeScanTypePassive,
             changeScanWindowValue = viewModel::changeScanWindowValue,
             changeScanIntervalValue = viewModel::changeScanIntervalValue,
-            formatTime3Digits = viewModel::formatTime3Digits,
             startScan = { onUIEvent(UIEvents.StartScan) },
             stopScan = { onUIEvent(UIEvents.StopScan) }
         ) else AdvertiserView(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp, 8.dp),
+                .padding(16.dp, 4.dp),
             advertisingMinInterval = advertisingMinInterval,
             advertisingMaxInterval = advertisingMaxInterval,
             advTimeoutValue = advTimeoutValue,

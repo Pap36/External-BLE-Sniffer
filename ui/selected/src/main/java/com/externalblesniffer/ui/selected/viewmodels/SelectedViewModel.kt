@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,6 +31,7 @@ class SelectedViewModel @Inject constructor(
     private val scanResults: ScanResults,
     usbDevices: USBDevices,
 ): ViewModel() {
+    private val HEX_CHARS = "0123456789abcdef".toCharArray()
     val isScanner = usbDevices.connectedBoardType
     val isOn = usbDevices.isOn
 
