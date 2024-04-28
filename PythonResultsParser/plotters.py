@@ -16,8 +16,109 @@ def split_data(data):
     # split data by source (usb, ble)
     return [d for d in data if d.source == 'USB'], [d for d in data if d.source == 'BLE']
 
+def extract_callbacks_timestamps(data):
+    # extract the callbacks and timestamps from the data
+    # remove the first values to account for errors from left-over recorded results
+    data = data[10:]
+    callbacks = [index for index, d in enumerate(data)]
+    timeStamps = [d.timeStamp - data[0].timeStamp for d in data]
+    
+    # convert timeStamps to seconds
+    timeStamps = [t / 1000 for t in timeStamps]
+    return callbacks, timeStamps
+
+def average_callbacks_timestamps(dataSources):
+    average_callbacks = []
+    average_timeStamps = []
+
+    all_timestamps = []
+
+    for data in dataSources:
+        _, timeStamps = extract_callbacks_timestamps(data)
+        all_timestamps += timeStamps
+
+    average_timeStamps = list(set(all_timestamps))
+    average_timeStamps.sort()
+    average_callbacks = [0] * len(average_timeStamps)
+
+
+    for data in dataSources:
+        callbacks, timeStamps = extract_callbacks_timestamps(data)
+        lastKnownTimestamp = 0
+        for index, t in enumerate(average_timeStamps):
+            if t in timeStamps:
+                lastKnownTimestamp = t
+                timeStampsIndex = timeStamps.index(t)
+            else:
+                timeStampsIndex = timeStamps.index(lastKnownTimestamp)
+            average_callbacks[index] = average_callbacks[index] + callbacks[timeStampsIndex]
+
+    average_callbacks = [c / len(dataSources) for c in average_callbacks]
+    return average_callbacks, average_timeStamps
+    
+def plot_average(dataSources, source=""):
+    # scatter plot the number of callbacks over the average time
+    callbackAverage, timeStampAverage = average_callbacks_timestamps(dataSources)
+    plt.plot(timeStampAverage, callbackAverage, label=source)
+    plt.ylabel('Number of Callbacks')
+    plt.xlabel('Time (s)')
+    plt.title('Number of Callbacks vs Time')
+    plt.legend()
+
+def normalize_timestamps(usb, ble):
+    # normalize the timestamps for each data source
+    usb = usb[10:]
+    ble = ble[10:]
+    base = usb[0].timeStamp
+    for u in usb:
+        u.timeStamp = u.timeStamp - base
+    base = ble[0].timeStamp
+    for b in ble:
+        b.timeStamp = b.timeStamp - base
+    return usb, ble
+
+def plot_callback_rate_scenario(dataSources, prefix=""):
+    # plot the number of callbacks per second
+    usbs = []
+    bles = []
+    for file in dataSources:
+        usb, ble = split_data(read_data(prefix + '/' + file))
+        usb, ble = normalize_timestamps(usb, ble)
+        usbs += usb
+        bles += ble
+
+    usbs.sort(key=lambda x: x.timeStamp)
+    bles.sort(key=lambda x: x.timeStamp)
+
+    plot_callback_per_second_rate(usbs, bles, prefix, averageFactor=len(dataSources))
+
+
+def plot_callback_per_second_rate(usb, ble, filename="", averageFactor=1):
+    # plot the number of callbacks per second
+    usb = usb[10:]
+    ble = ble[10:]
+    callbacks, timeStamps = extract_callbacks_timestamps(usb)
+    callbacks = callbacks[100:]
+    timeStamps = timeStamps[100:]
+    callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
+    plt.figure()
+    plt.plot(timeStamps, callbacksPerSecond, label='USB')
+
+    callbacks, timeStamps = extract_callbacks_timestamps(ble)
+    callbacks = callbacks[100:]
+    timeStamps = timeStamps[100:]
+    callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
+    plt.plot(timeStamps, callbacksPerSecond, label='BLE')
+    plt.ylabel('Number of Callbacks per Second')
+    plt.xlabel('Timestamp (s)')
+    plt.title('USB vs BLE Callbacks per Second - ' + filename)
+    plt.legend()
+
+
 def plot_callback_count(usb_data, ble_data, filename=""):
     # plot the number of callbacks for each device
+    usb_data = usb_data[10:]
+    ble_data = ble_data[10:]
     callbacks = [index for index, d in enumerate(usb_data)]
     timeStamps = [d.timeStamp - usb_data[0].timeStamp for d in usb_data]
     # convert timeStamps to seconds
