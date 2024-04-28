@@ -9,6 +9,7 @@ sealed class UIEvents {
     data object StopAdv: UIEvents()
     data class ExportResults(val uri: Uri): UIEvents()
     data class OnRSSIChange(val rssi: Int): UIEvents()
+    data class OnScanTimeoutChange(val scanTimeout: Int): UIEvents()
     data class OnJoinRspReqChange(val joinRspReq: Boolean): UIEvents()
     data class OnAdvertisingParamChange(
         val advertisingMinInterval: Float,

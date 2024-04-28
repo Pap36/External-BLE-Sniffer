@@ -35,6 +35,7 @@ import com.externalblesniffer.ui.selected.datamodel.UIEvents
 fun ScannerView(
     modifier: Modifier,
     rssiFilterValue: Int,
+    scanTimeoutValue: Int,
     joinRspReq: Boolean,
     usbResultsCount: Int,
     bleResultsCount: Int,
@@ -44,6 +45,7 @@ fun ScannerView(
     onUIEvent: (UIEvents) -> Unit,
     fileExporter: ActivityResultLauncher<String>,
     changeRSSI: (Int) -> Unit,
+    changeScanTimeout: (Int) -> Unit,
     changeJoinRspReq: (Boolean) -> Unit,
     setScanParameters: (Float, Float, Boolean) -> Unit,
     readParameters: () -> Unit,
@@ -75,6 +77,23 @@ fun ScannerView(
             },
             valueRange = 30f..100f,
             steps = 71,
+            enabled = !isOn
+        )
+    }
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = "Scan Timeout: ${scanTimeoutValue}s")
+        Slider(
+            value = scanTimeoutValue.toFloat() / 30f,
+            onValueChange = {
+                changeScanTimeout(it.toInt() * 30)
+            },
+            valueRange = 1f..20f,
+            steps = 21,
             enabled = !isOn
         )
     }
@@ -125,7 +144,7 @@ fun ScannerView(
                         .toUInt().toUShort().toByteArray().encodeHex(true)})"
                 )
                 Text(
-                    if(!scanIntervalError) "Range: 2.5 ms to 16384 ms (0x0004 -> 0x4000)"
+                    if(!scanIntervalError) "Range: 2.5 ms to 10240 ms (0x0004 -> 0x4000)"
                     else "Invalid value."
                 )
             }
@@ -164,7 +183,7 @@ fun ScannerView(
                         .toUInt().toUShort().toByteArray().encodeHex(true)})"
                 )
                 Text(
-                    if (!scanWindowError) "Range: 2.5 ms to 16384 ms (0x0004 -> 0x4000)"
+                    if (!scanWindowError) "Range: 2.5 ms to 10240 ms (0x0004 -> 0x4000)"
                     else "Invalid value."
                 )
 

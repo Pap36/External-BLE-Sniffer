@@ -39,10 +39,16 @@ class SelectedViewModel @Inject constructor(
     private val _rssiFilterValue = MutableStateFlow(-70)
     val rssiFilterValue = _rssiFilterValue.asStateFlow()
 
+    private val _scanTimeoutValue = MutableStateFlow(30)
+    val scanTimeoutValue = _scanTimeoutValue.asStateFlow()
+
     private val _joinRspReq = MutableStateFlow(true)
     val joinRspReq = _joinRspReq.asStateFlow()
 
     val rssiFinal = _rssiFilterValue
+        .debounce(300)
+
+    val scanTimeoutFinal = _scanTimeoutValue
         .debounce(300)
 
     val usbResultsCount = scanResults.usbResultsCount
@@ -73,6 +79,10 @@ class SelectedViewModel @Inject constructor(
 
     fun changeRSSI(value: Int) {
         _rssiFilterValue.value = value
+    }
+
+    fun changeScanTimeout(value: Int) {
+        _scanTimeoutValue.value = value
     }
 
     fun changeJoinRspReq(newVal: Boolean) {

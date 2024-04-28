@@ -7,6 +7,7 @@ import com.externalblesniffer.ui.selected.datamodel.UIEvents
 @Composable
 fun LaunchedEffects(
     rssiFinal: Int,
+    scanTimeoutFinal: Int,
     joinRspReq: Boolean,
     onUIEvent: (UIEvents) -> Unit,
 ) {
@@ -16,6 +17,10 @@ fun LaunchedEffects(
 
     LaunchedEffect(joinRspReq) {
         onUIEvent(UIEvents.OnJoinRspReqChange(joinRspReq))
+    }
+
+    LaunchedEffect(scanTimeoutFinal) {
+        onUIEvent(UIEvents.OnScanTimeoutChange(scanTimeoutFinal))
     }
 
 }

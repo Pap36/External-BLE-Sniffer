@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -43,10 +45,14 @@ fun SelectedScreen(
     val bleResultsCount by viewModel.bleResultsCount.collectAsStateWithLifecycle()
     val isOn by viewModel.isOn.collectAsStateWithLifecycle()
     val rssiFilterValue by viewModel.rssiFilterValue.collectAsStateWithLifecycle()
+    val scanTimeoutValue by viewModel.scanTimeoutValue.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     val rssiFinal by viewModel.rssiFinal.collectAsStateWithLifecycle(initialValue = -70)
+    val scanTimeoutFinal by viewModel.scanTimeoutFinal.collectAsStateWithLifecycle(initialValue = 30)
     val joinRspReq by viewModel.joinRspReq.collectAsStateWithLifecycle()
     val isScanner by viewModel.isScanner.collectAsStateWithLifecycle()
+
+    val scrollState = rememberScrollState()
 
     // board params
     val boardParameters by viewModel.boardParameters.collectAsStateWithLifecycle()
@@ -67,12 +73,16 @@ fun SelectedScreen(
 
     LaunchedEffects(
         rssiFinal = rssiFinal,
+        scanTimeoutFinal = scanTimeoutFinal,
         joinRspReq = joinRspReq,
         onUIEvent = onUIEvent,
     )
 
     Column(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(
+            scrollState,
+            enabled = true
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
         // verticalArrangement = Arrangement.SpaceEvenly,
     ) {
@@ -109,6 +119,7 @@ fun SelectedScreen(
                 .fillMaxWidth()
                 .padding(16.dp, 4.dp),
             rssiFilterValue = rssiFilterValue,
+            scanTimeoutValue = scanTimeoutValue,
             joinRspReq = joinRspReq,
             usbResultsCount = usbResultsCount,
             bleResultsCount = bleResultsCount,
@@ -118,6 +129,7 @@ fun SelectedScreen(
             onUIEvent = onUIEvent,
             fileExporter = fileExporter,
             changeRSSI = viewModel::changeRSSI,
+            changeScanTimeout = viewModel::changeScanTimeout,
             changeJoinRspReq = viewModel::changeJoinRspReq,
             startScan = {
                 onUIEvent(UIEvents.StartScan)

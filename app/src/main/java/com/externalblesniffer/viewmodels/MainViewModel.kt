@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
 import android.net.Uri
+import android.os.Handler
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.RECEIVER_EXPORTED
@@ -21,6 +22,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Timer
+import java.util.TimerTask
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +34,14 @@ class MainViewModel @Inject constructor(
     @ApplicationContext context: Context,
     broadcastReceiver: MyBroadcastReceiver,
 ): ViewModel() {
+
+    private var scanTimeout: Int = 30
+    private val timer = Timer()
+    private var timerObject: TimerTask = object : TimerTask() {
+        override fun run() {
+            Log.d("Timer", "Timer task is running")
+        }
+    }
 
     private val mPendingIntent = PendingIntent.getBroadcast(
         context,
@@ -60,6 +71,13 @@ class MainViewModel @Inject constructor(
     }
 
     fun startScan() {
+        timerObject = object : TimerTask() {
+            override fun run() {
+                stopScan()
+            }
+        }
+        timer.schedule(timerObject, scanTimeout * 1000L)
+
         bleManager.startScan()
         usbManager.startScan()
     }
@@ -70,10 +88,16 @@ class MainViewModel @Inject constructor(
     fun stopScan() {
         bleManager.stopScan()
         usbManager.stopScan()
+        timerObject.cancel()
+        timer.purge()
     }
     fun changeRSSI(rssiValue: Int) {
         bleManager.changeRssi(rssiValue)
         usbManager.changeRssi(rssiValue)
+    }
+
+    fun changeScanTimeout(scanTimeout: Int) {
+        this.scanTimeout = scanTimeout
     }
 
     fun changeJoinRspReq(joinRspReq: Boolean) {

@@ -40,6 +40,9 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.OnRSSIChange -> {
                         mainViewModel.changeRSSI(uiEvent.rssi)
                     }
+                    is UIEvents.OnScanTimeoutChange -> {
+                        mainViewModel.changeScanTimeout(uiEvent.scanTimeout)
+                    }
                     is UIEvents.OnJoinRspReqChange -> {
                         mainViewModel.changeJoinRspReq(uiEvent.joinRspReq)
                     }

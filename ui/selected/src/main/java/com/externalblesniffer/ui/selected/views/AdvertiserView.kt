@@ -78,7 +78,7 @@ fun AdvertiserView(
                         .toUInt().toUShort().toByteArray().encodeHex(true)})"
                 )
                 Text(
-                    if(!isMinIntervalError) "Range: 20 ms to 16384 ms (0x0020 -> 0x4000)"
+                    if(!isMinIntervalError) "Range: 20 ms to 10240 ms (0x0020 -> 0x4000)"
                     else "Invalid value."
                 )
             }
@@ -118,7 +118,7 @@ fun AdvertiserView(
                         .toUInt().toUShort().toByteArray().encodeHex(true)})"
                 )
                 Text(
-                    if(!isMaxIntervalError) "Range: 20 ms to 16384 ms (0x0020 -> 0x4000)"
+                    if(!isMaxIntervalError) "Range: 20 ms to 10240 ms (0x0020 -> 0x4000)"
                     else "Invalid value."
                 )
             }
