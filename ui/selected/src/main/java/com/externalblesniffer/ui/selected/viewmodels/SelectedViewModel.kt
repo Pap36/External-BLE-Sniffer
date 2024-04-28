@@ -48,17 +48,10 @@ class SelectedViewModel @Inject constructor(
     val usbResultsCount = scanResults.usbResultsCount
     val bleResultsCount = scanResults.bleResultsCount
 
-    private val _usbJobDone = MutableStateFlow(false)
-    private val _bleJobDone = MutableStateFlow(false)
-
     private var usbCollectJob: Job = viewModelScope.launch(Dispatchers.IO) {
         scanResults.scannedUSBResults
             .onEach {
                 it?.let { scanResults.addUSBResult(it) }
-            }
-            .onCompletion {
-                Log.d("SelectedViewModel", "usbCollectJob completed")
-                _usbJobDone.value = true
             }
             .collect()
     }
@@ -67,22 +60,6 @@ class SelectedViewModel @Inject constructor(
         scanResults.scannedBLEResults
             .onEach {
                 it?.let { scanResults.addBLEResult(it) }
-            }
-            .onCompletion {
-                Log.d("SelectedViewModel", "bleCollectJob completed")
-                _bleJobDone.value = true
-            }
-            .collect()
-    }
-
-    private var jobsDoneCollectJob: Job = viewModelScope.launch(Dispatchers.IO) {
-        _usbJobDone.combine(_bleJobDone) { usb, ble ->
-                Log.d("SelectedViewModel", "usb job: $usb, ble job: $ble")
-                usb && ble
-            }
-            .flatMapLatest {
-                if (it) { processResults() }
-                flow{ emit(it) }
             }
             .collect()
     }
@@ -103,20 +80,15 @@ class SelectedViewModel @Inject constructor(
     }
 
     fun startScan() {
-        _usbJobDone.value = false
-        _bleJobDone.value = false
-        jobsDoneCollectJob.start()
         usbCollectJob.start()
         bleCollectJob.start()
     }
 
     fun stopScan() {
-        usbCollectJob.cancel()
-        bleCollectJob.cancel()
+        processResults()
     }
 
-    private suspend fun processResults() {
-        yield()
+    private fun processResults() {
         val usbResults = scanResults.usbResults
         val bleResults = scanResults.bleResults
         var dif = 0
@@ -147,7 +119,6 @@ class SelectedViewModel @Inject constructor(
             dif += if(usbCount >= bleCount) usbCount - bleCount else 0
         }
         Log.d("SelectedViewModel", "Total messages scanned by usb and not ble: $dif / ${usbResults.size}")
-        jobsDoneCollectJob.cancel()
     }
 
 }
