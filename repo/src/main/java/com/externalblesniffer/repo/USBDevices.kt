@@ -2,6 +2,7 @@ package com.externalblesniffer.repo
 
 import android.hardware.usb.UsbDevice
 import android.util.Log
+import com.externalblesniffer.repo.datamodel.BoardParameters
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,9 @@ class USBDevices @Inject constructor() {
     private val _connectedBoardType: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val connectedBoardType = _connectedBoardType.asStateFlow()
 
+    private val _boardParams: MutableStateFlow<BoardParameters> = MutableStateFlow(BoardParameters())
+    val boardParams = _boardParams.asStateFlow()
+
     private val _isOn = MutableStateFlow(false)
     val isOn = _isOn.asStateFlow()
 
@@ -31,6 +35,10 @@ class USBDevices @Inject constructor() {
 
     fun setIsOn(isOn: Boolean) {
         _isOn.value = isOn
+    }
+
+    fun setBoardParams(boardParams: BoardParameters) {
+        _boardParams.value = boardParams
     }
 
 }

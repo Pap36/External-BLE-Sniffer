@@ -46,18 +46,10 @@ fun SelectedScreen(
     val coroutineScope = rememberCoroutineScope()
     val rssiFinal by viewModel.rssiFinal.collectAsStateWithLifecycle(initialValue = -70)
     val joinRspReq by viewModel.joinRspReq.collectAsStateWithLifecycle()
-    val scanTypePassive by viewModel.scanTypePassive.collectAsStateWithLifecycle()
-    val scanWindowFinal by viewModel.scanWindowFinal.collectAsStateWithLifecycle(initialValue = 100f)
-    val scanWindowValue by viewModel.scanWindowValue.collectAsStateWithLifecycle()
-    val scanIntervalFinal by viewModel.scanIntervalFinal.collectAsStateWithLifecycle(initialValue = 100f)
-    val scanIntervalValue by viewModel.scanIntervalValue.collectAsStateWithLifecycle()
     val isScanner by viewModel.isScanner.collectAsStateWithLifecycle()
 
-    // for adv
-    val advertisingMinInterval by viewModel.advertisingMinInterval.collectAsStateWithLifecycle()
-    val advertisingMaxInterval by viewModel.advertisingMaxInterval.collectAsStateWithLifecycle()
-    val advTimeoutValue by viewModel.advTimeoutValue.collectAsStateWithLifecycle()
-    val advTimeoutFinal by viewModel.advTimeoutFinal.collectAsStateWithLifecycle(initialValue = 5)
+    // board params
+    val boardParameters by viewModel.boardParameters.collectAsStateWithLifecycle()
 
     val fileExporter = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(mimeType = "application/json")
@@ -76,12 +68,6 @@ fun SelectedScreen(
     LaunchedEffects(
         rssiFinal = rssiFinal,
         joinRspReq = joinRspReq,
-        scanTypePassive = scanTypePassive,
-        scanWindowFinal = scanWindowFinal,
-        scanIntervalFinal = scanIntervalFinal,
-        advertisingMinInterval = advertisingMinInterval,
-        advertisingMaxInterval = advertisingMaxInterval,
-        advTimeoutFinal = advTimeoutFinal,
         onUIEvent = onUIEvent,
     )
 
@@ -123,36 +109,40 @@ fun SelectedScreen(
                 .fillMaxWidth()
                 .padding(16.dp, 4.dp),
             rssiFilterValue = rssiFilterValue,
-            scanWindowValue = scanWindowValue,
-            scanIntervalValue = scanIntervalValue,
             joinRspReq = joinRspReq,
-            scanTypePassive = scanTypePassive,
             usbResultsCount = usbResultsCount,
             bleResultsCount = bleResultsCount,
             maximumCount = maximumCount,
             isOn = isOn,
+            boardParameters = boardParameters,
             onUIEvent = onUIEvent,
             fileExporter = fileExporter,
             changeRSSI = viewModel::changeRSSI,
             changeJoinRspReq = viewModel::changeJoinRspReq,
-            changeScanTypePassive = viewModel::changeScanTypePassive,
-            changeScanWindowValue = viewModel::changeScanWindowValue,
-            changeScanIntervalValue = viewModel::changeScanIntervalValue,
-            startScan = { onUIEvent(UIEvents.StartScan) },
-            stopScan = { onUIEvent(UIEvents.StopScan) }
+            startScan = {
+                onUIEvent(UIEvents.StartScan)
+                viewModel.startScan()
+            },
+            stopScan = {
+                onUIEvent(UIEvents.StopScan)
+                viewModel.stopScan()
+            },
+            setScanParameters = { window, interval, passive ->
+                onUIEvent(UIEvents.OnScanningParamChange(window, interval, passive))
+            },
+            readParameters = { onUIEvent(UIEvents.ReadParams) }
         ) else AdvertiserView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp, 4.dp),
-            advertisingMinInterval = advertisingMinInterval,
-            advertisingMaxInterval = advertisingMaxInterval,
-            advTimeoutValue = advTimeoutValue,
             isOn = isOn,
-            changeAdvertisingMinInterval = viewModel::changeAdvertisingMinIntervalValue,
-            changeAdvertisingMaxInterval = viewModel::changeAdvertisingMaxIntervalValue,
-            changeAdvTimeoutValue = viewModel::changeAdvTimeoutValue,
+            boardParameters = boardParameters,
             startAdv = { onUIEvent(UIEvents.StartAdv) },
-            stopAdv = { onUIEvent(UIEvents.StopAdv) }
+            stopAdv = { onUIEvent(UIEvents.StopAdv) },
+            setAdvParameters = { min, max, timeout ->
+                onUIEvent(UIEvents.OnAdvertisingParamChange(min, max, timeout))
+            },
+            readParameters = { onUIEvent(UIEvents.ReadParams) }
         )
     }
 

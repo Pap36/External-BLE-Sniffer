@@ -172,17 +172,23 @@ static void interrupt_handler(const struct device *dev, void *user_data)
 				curr_dev = dev;
 				bt_le_scan_start(&scan_param, scan_cb);
 			} else if (buffer[0] == 0x02) {
-				// active scanning
-				scan_param.type = BT_HCI_LE_SCAN_ACTIVE;
+				// send params
+				uint8_t send_array[6];
+				send_array[0] = 0x02;
+				send_array[1] = scan_param.window >> 8;
+				send_array[2] = scan_param.window & 0xFF;
+				send_array[3] = scan_param.interval >> 8;
+				send_array[4] = scan_param.interval & 0xFF;
+				send_array[5] = scan_param.type;
+				rb_len = ring_buf_put(&ringbuf, send_array, sizeof(send_array));
+				if (rb_len) {
+					uart_irq_tx_enable(dev);
+				}
 			} else if (buffer[0] == 0x03) {
-				// passive scanning
-				scan_param.type = BT_HCI_LE_SCAN_PASSIVE;
-			} else if (buffer[0] == 0x04) {
-				// scan window in buffer 1 and 2
-				scan_param.window = (buffer[1] << 8) | buffer[2];
-			} else if (buffer[0] == 0x05) {
-				// scan interval in buffer 1 and 2
-				scan_param.interval = (buffer[1] << 8) | buffer[2];
+				// set params
+				scan_param.window = buffer[1] << 8 | buffer[2];
+				scan_param.interval = buffer[3] << 8 | buffer[4];
+				scan_param.type = buffer[5];
 			} else {
 				printk("Unknown command");
 			}

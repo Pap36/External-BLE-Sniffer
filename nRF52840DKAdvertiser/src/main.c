@@ -190,25 +190,21 @@ static void interrupt_handler(const struct device *dev, void *user_data)
 				ring_buf_put(&ringbuf, toSend, 1);
 				uart_irq_tx_enable(curr_dev);
 			} else if (buffer[0] == 0x02) {
-				// timeout
-				timeout = buffer[1] * 1000;
+				// send param data
+				uint8_t toSend[6];
+				toSend[0] = 0x02;
+				toSend[1] = adv_param->interval_min >> 8;
+				toSend[2] = adv_param->interval_min & 0xFF;
+				toSend[3] = adv_param->interval_max >> 8;
+				toSend[4] = adv_param->interval_max & 0xFF;
+				toSend[5] = timeout / 1000;
+				ring_buf_put(&ringbuf, toSend, 6);
+				uart_irq_tx_enable(curr_dev);
 			} else if (buffer[0] == 0x03) {
-				// advertising interval min
+				// set param data (advMin advMax timeout)
 				adv_param->interval_min = (buffer[1] << 8) | buffer[2];
-			} else if (buffer[0] == 0x04) {
-				// advertising interval max
-				adv_param->interval_max = (buffer[1] << 8) | buffer[2];
-			} else if (buffer[0] == 0x05) {
-				// enable Scan Response Data
-				bool option = buffer[1] == 0x01;
-				if (option) { 
-					sd->data = name_data;
-					sd->data_len = 14;
-				}
-				else {
-					sd->data = NULL;
-					sd->data_len = 0;
-				}
+				adv_param->interval_max = (buffer[3] << 8) | buffer[4];
+				timeout = buffer[5] * 1000;
 			} else {
 				printk("Unknown command");
 			}

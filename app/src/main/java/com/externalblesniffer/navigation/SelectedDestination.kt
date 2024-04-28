@@ -43,26 +43,25 @@ val SelectedDestination = defineDestination(Selected) {
                     is UIEvents.OnJoinRspReqChange -> {
                         mainViewModel.changeJoinRspReq(uiEvent.joinRspReq)
                     }
-                    is UIEvents.OnScanTypePassiveChange -> {
-                        mainViewModel.changeScanTypePassive(uiEvent.scanTypePassive)
+                    is UIEvents.OnAdvertisingParamChange -> {
+                        mainViewModel.changeAdvertisingParam(
+                            uiEvent.advertisingMinInterval,
+                            uiEvent.advertisingMaxInterval,
+                            uiEvent.advTimeout
+                        )
                     }
-                    is UIEvents.OnScanWindowValueChange -> {
-                        mainViewModel.changeScanWindowValue(uiEvent.scanWindowValue)
-                    }
-                    is UIEvents.OnScanIntervalValueChange -> {
-                        mainViewModel.changeScanIntervalValue(uiEvent.scanIntervalValue)
-                    }
-                    is UIEvents.OnAdvertisingMinIntervalChange -> {
-                        mainViewModel.changeAdvertisingMinInterval(uiEvent.advertisingMinInterval)
-                    }
-                    is UIEvents.OnAdvertisingMaxIntervalChange -> {
-                        mainViewModel.changeAdvertisingMaxInterval(uiEvent.advertisingMaxInterval)
-                    }
-                    is UIEvents.OnAdvTimeoutValueChange -> {
-                        mainViewModel.changeAdvTimeoutValue(uiEvent.advTimeoutValue)
+                    is UIEvents.OnScanningParamChange -> {
+                        mainViewModel.changeScanningParam(
+                            uiEvent.scanWindowValue,
+                            uiEvent.scanIntervalValue,
+                            uiEvent.scanTypePassive
+                        )
                     }
                     is UIEvents.OnBoardChange -> {
                         mainViewModel.changeBoard(uiEvent.isScanner)
+                    }
+                    is UIEvents.ReadParams -> {
+                        mainViewModel.readParameters()
                     }
                 }
             }

@@ -80,34 +80,25 @@ class MainViewModel @Inject constructor(
         usbManager.changeJoinRspReq(joinRspReq)
     }
 
-    fun changeScanTypePassive(scanTypePassive: Boolean) {
-        usbManager.changeScanTypePassive(scanTypePassive)
+    fun changeAdvertisingParam(
+        advertisingMinInterval: Float,
+        advertisingMaxInterval: Float,
+        advTimeout: Int
+    ) {
+        val incrementsMin = (advertisingMinInterval / 0.625).toInt() * 0.625f
+        val incrementsMax = (advertisingMaxInterval / 0.625).toInt() * 0.625f
+        usbManager.changeAdvertisingParam(incrementsMin, incrementsMax, advTimeout)
     }
 
-    fun changeScanWindowValue(scanWindowValue: Float) {
-        usbManager.changeScanWindowValue(scanWindowValue)
+    fun changeScanningParam(
+        scanWindowValue: Float,
+        scanIntervalValue: Float,
+        scanTypePassive: Boolean
+    ) {
+        usbManager.changeScanningParam(scanWindowValue, scanIntervalValue, scanTypePassive)
     }
 
-    fun changeScanIntervalValue(scanIntervalValue: Float) {
-        usbManager.changeScanIntervalValue(scanIntervalValue)
-    }
-
-    fun changeAdvertisingMinInterval(advertisingMinInterval: Float) {
-        Log.d("MainViewModel", "changeAdvertisingMinInterval: $advertisingMinInterval")
-        val increments = (advertisingMinInterval / 0.625).toInt()
-        val value = increments * 0.625f
-        usbManager.changeAdvertisingMinInterval(value)
-    }
-
-    fun changeAdvertisingMaxInterval(advertisingMaxInterval: Float) {
-        val increments = (advertisingMaxInterval / 0.625).toInt()
-        val value = increments * 0.625f
-        usbManager.changeAdvertisingMinInterval(value)
-    }
-
-    fun changeAdvTimeoutValue(advTimeoutValue: Int) {
-        usbManager.changeAdvTimeoutValue(advTimeoutValue)
-    }
+    fun readParameters() = usbManager.readParameters()
 
     fun changeBoard(isScanner: Boolean) {
         usbManager.changeBoard(isScanner)

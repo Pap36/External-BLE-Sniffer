@@ -31,9 +31,10 @@ class SelectedViewModel @Inject constructor(
     private val scanResults: ScanResults,
     usbDevices: USBDevices,
 ): ViewModel() {
-    private val HEX_CHARS = "0123456789abcdef".toCharArray()
     val isScanner = usbDevices.connectedBoardType
     val isOn = usbDevices.isOn
+
+    val boardParameters = usbDevices.boardParams
 
     private val _rssiFilterValue = MutableStateFlow(-70)
     val rssiFilterValue = _rssiFilterValue.asStateFlow()
@@ -41,34 +42,7 @@ class SelectedViewModel @Inject constructor(
     private val _joinRspReq = MutableStateFlow(true)
     val joinRspReq = _joinRspReq.asStateFlow()
 
-    private val _scanTypePassive = MutableStateFlow(true)
-    val scanTypePassive = _scanTypePassive.asStateFlow()
-
-    private val _scanWindowValue = MutableStateFlow(100f)
-    val scanWindowValue = _scanWindowValue.asStateFlow()
-
-    private val _scanIntervalValue = MutableStateFlow(100f)
-    val scanIntervalValue = _scanIntervalValue.asStateFlow()
-
-    private val _advertisingMinIntervalValue = MutableStateFlow(100f)
-    val advertisingMinInterval = _advertisingMinIntervalValue.asStateFlow()
-
-    private val _advertisingMaxIntervalValue = MutableStateFlow(100f)
-    val advertisingMaxInterval = _advertisingMaxIntervalValue.asStateFlow()
-
-    private val _advTimeoutValue = MutableStateFlow(5)
-    val advTimeoutValue = _advTimeoutValue.asStateFlow()
-
     val rssiFinal = _rssiFilterValue
-        .debounce(300)
-
-    val advTimeoutFinal = _advTimeoutValue
-        .debounce(300)
-
-    val scanWindowFinal = _scanWindowValue
-        .debounce(300)
-
-    val scanIntervalFinal = _scanIntervalValue
         .debounce(300)
 
     val usbResultsCount = scanResults.usbResultsCount
@@ -76,15 +50,6 @@ class SelectedViewModel @Inject constructor(
 
     private val _usbJobDone = MutableStateFlow(false)
     private val _bleJobDone = MutableStateFlow(false)
-
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            isOn.combine(isScanner) { on, scanner ->
-                if (on && scanner) startScan()
-                else if (!on && !scanner) stopScan()
-            }.collect()
-        }
-    }
 
     private var usbCollectJob: Job = viewModelScope.launch(Dispatchers.IO) {
         scanResults.scannedUSBResults
@@ -133,47 +98,8 @@ class SelectedViewModel @Inject constructor(
         _rssiFilterValue.value = value
     }
 
-    fun changeAdvTimeoutValue(value: Int) {
-        _advTimeoutValue.value = value
-    }
-
     fun changeJoinRspReq(newVal: Boolean) {
         _joinRspReq.value = newVal
-    }
-
-    fun changeScanTypePassive(newVal: Boolean) {
-        _scanTypePassive.value = newVal
-    }
-
-    fun changeScanWindowValue(value: Int) {
-        Log.d("SelectedViewModel", "changeScanWindowValue: $value")
-        // round value to 3 decimals
-        val roundValue = value * 0.625f
-        if (roundValue < _scanIntervalValue.value) _scanIntervalValue.value = roundValue
-        _scanWindowValue.value = roundValue
-    }
-
-    fun changeScanIntervalValue(value: Int) {
-        Log.d("SelectedViewModel", "changeScanWindowValue: $value")
-        val roundValue = value * 0.625f
-        if (roundValue > _scanWindowValue.value) _scanWindowValue.value = roundValue
-        _scanIntervalValue.value = roundValue
-    }
-
-    fun changeAdvertisingMinIntervalValue(value: Float) {
-        if (value > _advertisingMaxIntervalValue.value)
-            _advertisingMaxIntervalValue.value = value
-        _advertisingMinIntervalValue.value = value
-    }
-
-    fun changeAdvertisingMaxIntervalValue(value: Float) {
-        if (value < _advertisingMinIntervalValue.value)
-            _advertisingMinIntervalValue.value = value
-        _advertisingMaxIntervalValue.value = value
-    }
-
-    fun formatTime3Digits(time: Float): String {
-        return "%.3f".format(time)
     }
 
     fun startScan() {

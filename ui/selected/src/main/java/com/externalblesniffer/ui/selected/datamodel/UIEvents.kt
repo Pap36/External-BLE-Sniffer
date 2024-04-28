@@ -10,11 +10,19 @@ sealed class UIEvents {
     data class ExportResults(val uri: Uri): UIEvents()
     data class OnRSSIChange(val rssi: Int): UIEvents()
     data class OnJoinRspReqChange(val joinRspReq: Boolean): UIEvents()
-    data class OnScanTypePassiveChange(val scanTypePassive: Boolean): UIEvents()
-    data class OnScanWindowValueChange(val scanWindowValue: Float): UIEvents()
-    data class OnScanIntervalValueChange(val scanIntervalValue: Float): UIEvents()
-    data class OnAdvertisingMinIntervalChange(val advertisingMinInterval: Float): UIEvents()
-    data class OnAdvertisingMaxIntervalChange(val advertisingMaxInterval: Float): UIEvents()
-    data class OnAdvTimeoutValueChange(val advTimeoutValue: Int): UIEvents()
+    data class OnAdvertisingParamChange(
+        val advertisingMinInterval: Float,
+        val advertisingMaxInterval: Float,
+        val advTimeout: Int
+    ): UIEvents()
+
+    data class OnScanningParamChange(
+        val scanWindowValue: Float,
+        val scanIntervalValue: Float,
+        val scanTypePassive: Boolean
+    ): UIEvents()
+
+    data object ReadParams: UIEvents()
     data class OnBoardChange(val isScanner: Boolean): UIEvents()
+
 }
