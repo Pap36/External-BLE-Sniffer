@@ -77,7 +77,42 @@ def normalize_timestamps(usb, ble):
         b.timeStamp = b.timeStamp - base
     return usb, ble
 
-def plot_callback_rate_scenario(dataSources, prefix=""):
+def calculate_callback_rate_scenario(dataSources):
+    # calculate the callback rate for each data source
+    usbs = []
+    bles = []
+    for file in dataSources:
+        usb, ble = split_data(read_data(file))
+        usb, ble = normalize_timestamps(usb, ble)
+        usbs += usb
+        bles += ble
+
+    usbs.sort(key=lambda x: x.timeStamp)
+    bles.sort(key=lambda x: x.timeStamp)
+
+    return calculate_callback_rate(usbs, bles, averageFactor=len(dataSources))
+
+def calculate_callback_rate(usb, ble, averageFactor=1):
+    # calculate the callback rate for each data source
+    usb = usb[10:]
+    ble = ble[10:]
+
+    callbacks_usb, timeStamps_usb = extract_callbacks_timestamps(usb)
+    callbacs_ble, timeStamps_ble = extract_callbacks_timestamps(ble)
+
+    callbacks_usb = callbacks_usb[100:]
+    timeStamps_usb = timeStamps_usb[100:]
+
+    callbacs_ble = callbacs_ble[100:]
+    timeStamps_ble = timeStamps_ble[100:]
+
+    callbacksPerSecondUSB = [((callbacks_usb[i] / timeStamps_usb[i]) / averageFactor) for i in range(len(callbacks_usb))]
+    callnamesPerSecondBLE = [((callbacs_ble[i] / timeStamps_ble[i]) / averageFactor) for i in range(len(callbacs_ble))]
+
+
+    return callbacksPerSecondUSB[-1], callnamesPerSecondBLE[-1]
+
+def plot_callback_rate_scenario(dataSources, prefix="", subplots=False, axsElement=None):
     # plot the number of callbacks per second
     usbs = []
     bles = []
@@ -90,10 +125,10 @@ def plot_callback_rate_scenario(dataSources, prefix=""):
     usbs.sort(key=lambda x: x.timeStamp)
     bles.sort(key=lambda x: x.timeStamp)
 
-    plot_callback_per_second_rate(usbs, bles, prefix, averageFactor=len(dataSources))
+    plot_callback_per_second_rate(usbs, bles, prefix, averageFactor=len(dataSources), subplots=subplots, axsElement=axsElement)
 
 
-def plot_callback_per_second_rate(usb, ble, filename="", averageFactor=1):
+def plot_callback_per_second_rate(usb, ble, filename="", averageFactor=1, subplots=False, axsElement=None):
     # plot the number of callbacks per second
     usb = usb[10:]
     ble = ble[10:]
@@ -101,18 +136,29 @@ def plot_callback_per_second_rate(usb, ble, filename="", averageFactor=1):
     callbacks = callbacks[100:]
     timeStamps = timeStamps[100:]
     callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
-    plt.figure()
-    plt.plot(timeStamps, callbacksPerSecond, label='USB')
 
-    callbacks, timeStamps = extract_callbacks_timestamps(ble)
-    callbacks = callbacks[100:]
-    timeStamps = timeStamps[100:]
-    callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
-    plt.plot(timeStamps, callbacksPerSecond, label='BLE')
-    plt.ylabel('Number of Callbacks per Second')
-    plt.xlabel('Timestamp (s)')
-    plt.title('USB vs BLE Callbacks per Second - ' + filename)
-    plt.legend()
+    if not subplots: 
+        plt.figure()
+        plt.plot(timeStamps, callbacksPerSecond, label='nRF 52840 DK')
+
+        callbacks, timeStamps = extract_callbacks_timestamps(ble)
+        callbacks = callbacks[100:]
+        timeStamps = timeStamps[100:]
+        callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
+        plt.plot(timeStamps, callbacksPerSecond, label='Phone')
+        plt.ylabel('Number of Callbacks per Second')
+        plt.xlabel('Timestamp (s)')
+        plt.title('USB vs BLE Callbacks per Second - ' + filename)
+        plt.legend()
+    else:
+        axsElement.plot(timeStamps, callbacksPerSecond, label='nRF 52840 DK')
+        callbacks, timeStamps = extract_callbacks_timestamps(ble)
+        callbacks = callbacks[100:]
+        timeStamps = timeStamps[100:]
+        callbacksPerSecond = [(callbacks[i] / timeStamps[i]) / averageFactor for i in range(len(callbacks))]
+        axsElement.plot(timeStamps, callbacksPerSecond, label='Phone')
+        axsElement.legend()
+
 
 
 def plot_callback_count(usb_data, ble_data, filename=""):
@@ -124,17 +170,17 @@ def plot_callback_count(usb_data, ble_data, filename=""):
     # convert timeStamps to seconds
     timeStamps = [t / 1000 for t in timeStamps]
     plt.figure()
-    plt.plot(timeStamps, callbacks, label='USB')
+    plt.plot(timeStamps, callbacks, label='nRF 52840 DK')
     
 
     callbacks = [index for index, d in enumerate(ble_data)]
     timeStamps = [d.timeStamp - ble_data[0].timeStamp for d in ble_data]
     # convert timeStamps to seconds
     timeStamps = [t / 1000 for t in timeStamps]
-    plt.plot(timeStamps, callbacks, label = 'BLE')
+    plt.plot(timeStamps, callbacks, label = 'Phone')
     plt.ylabel('Callback Index')
     plt.xlabel('Timestamp (s)')
-    plt.title('USB vs BLE Callbacks - ' + filename)
+    plt.title('nRF 52840 DK vs Phone Callbacks - ' + filename)
     plt.legend()
 
 def populateLocalNameData(data):
