@@ -9,6 +9,14 @@ def read_data(filename):
     with open(filename, 'r') as f:
         data = json.load(f)
 
+    for d in data:
+        try:
+            BLEScanResult(**d)
+        except Exception as e:
+            print(e)
+            print(d)
+            print(filename)
+            print("Error parsing data")
     # return an array of BLEScanResult objects
     return [BLEScanResult(**d) for d in data]
 
@@ -163,10 +171,11 @@ def plot_callback_per_second_rate(usb, ble, filename="", averageFactor=1, subplo
 
 def plot_callback_count(usb_data, ble_data, filename=""):
     # plot the number of callbacks for each device
-    usb_data = usb_data[10:]
-    ble_data = ble_data[10:]
+    usb_data = usb_data[1:]
+    ble_data = ble_data[1:]
     callbacks = [index for index, d in enumerate(usb_data)]
-    timeStamps = [d.timeStamp - usb_data[0].timeStamp for d in usb_data]
+    baseTimestamp = min(usb_data[0].timeStamp, ble_data[0].timeStamp)
+    timeStamps = [d.timeStamp - baseTimestamp for d in usb_data]
     # convert timeStamps to seconds
     timeStamps = [t / 1000 for t in timeStamps]
     plt.figure()
@@ -174,7 +183,7 @@ def plot_callback_count(usb_data, ble_data, filename=""):
     
 
     callbacks = [index for index, d in enumerate(ble_data)]
-    timeStamps = [d.timeStamp - ble_data[0].timeStamp for d in ble_data]
+    timeStamps = [d.timeStamp - baseTimestamp for d in ble_data]
     # convert timeStamps to seconds
     timeStamps = [t / 1000 for t in timeStamps]
     plt.plot(timeStamps, callbacks, label = 'Phone')
@@ -197,9 +206,12 @@ def populateLocalNameData(data):
 
     return data
 
-def extract_addresses(data):
+def extract_addresses(data, pure=False):
     # extract the addresses from the data and the number of callbacks for each address
-    return [d.address if d.localName == "" else d.localName for d in data]
+    if not pure:
+        return [d.address if d.localName == "" else d.localName for d in data]
+    else:
+        return [d.address for d in data]
 
 def centraliseAdvTypeUSB(data, addresses):
     typeDict = {}
@@ -215,12 +227,27 @@ def centraliseAdvTypeUSB(data, addresses):
         typeDict[addr] = dict(sorted(typeDict[addr].items(), key=lambda x: x[1], reverse=True))
     return typeDict
 
-def print_address_count_comparison(usb_data, ble_data, filename=""):
+def filterOutPhone(usb, ble):
+    ble_addresses = extract_addresses(ble, True)
+    usb_addresses = extract_addresses(usb, True)
+
+    ble_addresses = list(set(ble_addresses))
+    usb_addresses = list(set(usb_addresses))
+
+    phone_addresses = [a for a in usb_addresses if a not in ble_addresses]
+
+    usb = [d for d in usb if d.address not in phone_addresses]
+
+    return usb, ble
+
+def print_address_count_comparison(usb_data, ble_data, filename="", isPrint=True):
     # plot the number of callbacks for each device
-    usb_data = populateLocalNameData(usb_data)
-    ble_data = populateLocalNameData(ble_data)
-    usb_addresses = extract_addresses(usb_data)
-    ble_addresses = extract_addresses(ble_data)
+    # usb_data = populateLocalNameData(usb_data)
+    # ble_data = populateLocalNameData(ble_data)
+    populateLocalNameData(usb_data)
+    populateLocalNameData(ble_data)
+    usb_addresses = extract_addresses(usb_data, True)
+    ble_addresses = extract_addresses(ble_data, True)
     all_addresses = list(set(usb_addresses + ble_addresses))
     usb_address_count = {a: usb_addresses.count(a) for a in all_addresses}
     ble_address_count = {a: ble_addresses.count(a) for a in all_addresses}
@@ -233,10 +260,13 @@ def print_address_count_comparison(usb_data, ble_data, filename=""):
     # zip together the addresses, number of callbacks and average rssi's and order by rssi_usb
     zipped = sorted(list(zip(all_addresses, usb_address_count.values(), average_rssi_address_usb.values(), 
         ble_address_count.values(), average_rssi_address_ble.values(), usb_typeDict.values())), key=lambda x: x[2], reverse=True)
-    print(f'Address count comparison for {filename}:')
+    if isPrint:
+        print(f'Address count comparison for {filename}:')
     zipped.insert(0, ('Address', 'USB Count', 'Average RSSI USB', 'BLE Count', 'Average RSSI BLE', 'USB Adv Types'))
     for a in zipped:
         print(f'{a[0]:<30} {a[1]:>15} {a[2]:>20} {a[3]:>15} {a[4]:>20} \t{a[5]}')
+    
+    return zipped
 
 def print_address_count(data, filename=""):
     # plot the number of callbacks for each device

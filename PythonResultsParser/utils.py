@@ -22,3 +22,17 @@ def print_callback_rate_dict_to_latex(dict, columnNames):
         print("\\hline")
     print("\\end{tabular}")
     print("\\end{table}")
+
+
+def dict_to_latex(dict, columnNames):
+    print("\\begin{table}[H]")
+    print("\\centering")
+    print("\\begin{tabular}" + "{|" + "|".join(["c" for _ in range(len(columnNames))]) + "|}")
+    print("\\hline")
+    print(" & ".join(columnNames) + "\\\\")
+    print("\\hline")
+    for key, value in dict.items():
+        print(f"{key} & {' & '.join([str(v) for v in value])} \\\\")
+        print("\\hline")
+    print("\\end{tabular}")
+    print("\\end{table}")

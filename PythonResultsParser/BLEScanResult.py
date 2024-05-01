@@ -32,3 +32,12 @@ class BLEScanResult:
                 self.localName = localNameBytes.decode("utf-8")
                 return
             toProcess = toProcess[1+length:]
+
+    def getAddress(self):
+
+        return self.address
+
+        # if self.localName == "":
+        #     return self.address
+        # else:
+        #     return self.localName 
