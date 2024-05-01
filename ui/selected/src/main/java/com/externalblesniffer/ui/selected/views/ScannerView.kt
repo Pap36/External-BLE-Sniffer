@@ -263,7 +263,7 @@ fun ScannerView(
                     if (scanInterval.text.length == 4 && scanWindow.text.length == 4) {
                         val minVal = scanInterval.text.toUInt(radix = 16).toFloat() * 0.625f
                         val maxVal = scanWindow.text.toUInt(radix = 16).toFloat() * 0.625f
-                        if (minVal in 20f..10240f && maxVal in 20f..10240f) {
+                        if (minVal in 2.5f..10240f && maxVal in 2.5f..10240f) {
                             if (minVal <= maxVal) true
                             else false
                         } else false
