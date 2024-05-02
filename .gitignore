@@ -10,7 +10,7 @@
 local.properties
 /.idea
 /PythonResultsParser/__pycache__
-/PythonResultsParser/data
+/PythonResultsParser/data/.tmp.*
 .idea/deploymentTargetDropDown.xml
 /nRF52840DKScanner/build
 /nRF52840DKAdvertiser/build
